@@ -1,0 +1,135 @@
+{
+	"name": "pl_report_attendance_data_gold_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "df_execute_df_report_attendace_snapshot_data_load",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "set_var_from",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "set_var_to",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_report_attendace_snapshot_data_load",
+						"type": "DataFlowReference",
+						"parameters": {
+							"SinkFileSystem": {
+								"value": "'@{pipeline().parameters.SinkFileSystem}'",
+								"type": "Expression"
+							},
+							"SinkDirectory": {
+								"value": "'@{pipeline().parameters.SinkDirectory}'",
+								"type": "Expression"
+							},
+							"StartDate": {
+								"value": "'@{variables('from')}'",
+								"type": "Expression"
+							},
+							"EndDate": {
+								"value": "'@{variables('to')}'",
+								"type": "Expression"
+							},
+							"KeyColumns": {
+								"value": "@pipeline().parameters.KeyColumns",
+								"type": "Expression"
+							},
+							"BatchId": {
+								"value": "'@{formatDateTime(pipeline().TriggerTime, 'yyyMMdd_HHmmss')}'",
+								"type": "Expression"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 16,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "set_var_from",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "from",
+					"value": {
+						"value": "@formatDateTime(\n    subtractFromTime(\n        utcNow(),\n        add(dayOfWeek(utcNow()),7),\n        'Day'\n    ),\n    'yyyy-MM-dd'\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "set_var_to",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "to",
+					"value": {
+						"value": "@formatDateTime(\n    addDays(\n        subtractFromTime(\n            utcNow(),\n            dayOfWeek(utcNow()),\n            'Day'\n        ),\n    -1),\n    'yyyy-MM-dd'\n)",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SinkFileSystem": {
+				"type": "string",
+				"defaultValue": "gold"
+			},
+			"SinkDirectory": {
+				"type": "string",
+				"defaultValue": "audax/attendance_snapshot"
+			},
+			"KeyColumns": {
+				"type": "array",
+				"defaultValue": [
+					"employee_id",
+					"email_id",
+					"from",
+					"to"
+				]
+			}
+		},
+		"variables": {
+			"from": {
+				"type": "String"
+			},
+			"to": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "ResourceManagement/PunchData"
+		},
+		"annotations": []
+	}
+}

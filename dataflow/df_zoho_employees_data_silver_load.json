@@ -1,0 +1,153 @@
+{
+	"name": "df_zoho_employees_data_silver_load",
+	"properties": {
+		"folder": {
+			"name": "Zoho/Employee"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_synapse_serverless_sql",
+						"type": "DatasetReference"
+					},
+					"name": "SqlSource"
+				},
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "SourceDelta"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "InsertDeltaSink"
+				},
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "DeleteDeltaSink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "AlterRowToInsert"
+				},
+				{
+					"name": "FilterTransformation"
+				},
+				{
+					"name": "AlterRowToDelete"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     InputString as string ('{\"response\":{\"result\":[{\"50699000005132271\":[{\"EmailID\":\"vaibhav.kumar@audaxlabs.com\",\"Address\":\"RZF-100/43 STREET NO.- 41 SADH NAGAR -2 PALAM COLONY NEW DELHI 110045\",\"Marital_status\":\"Married\",\"Gender\":\"Male\",\"ModifiedBy\":\"AL0023 - Rajesh - Kumar\",\"ApprovalStatus\":\"Approval Not Enabled\",\"Second_Reporting_To\":\"\",\"HRA.displayValue\":\"\",\"Special_Allowance.displayValue\":\"\",\"Department\":\"Sales & Marketing\",\"Tags\":\"\",\"Basic.displayValue\":\"\",\"total_experience.displayValue\":\"\",\"Probation_Status\":\"\",\"Employeestatus\":\"Active\",\"Experience\":\"0\",\"Sub_Total_E\":\"0\",\"Performance_Incentive.displayValue\":\"\",\"Country\":\"INDIA\",\"Sub_Total_A\":\"0\",\"Role.ID\":\"50699000000035635\",\"Street_Address\":\"RZF-100/43 STREET NO-41\",\"Dateofexit\":\"\",\"Other_Email\":\"vaibhavdelhi0406@gmail.com\",\"PF_UAN_No\":\"101826392649\",\"LocationName\":\"Noida\",\"Mediclaim_Personal_Accident_and_GLT_Insurance.displayValue\":\"\",\"total_experience\":\"0\",\"Reporting_To.MailID\":\"\",\"Zoho_ID\":50699000005132271,\"Blood_Group_1\":\"AB +ve\",\"Source_of_hire\":\"\",\"Designation\":\"Senior Consultant\",\"Age.displayValue\":\"27 year(s) 9 month(s)\",\"Dateofjoining\":\"\",\"FirstName\":\"Vaibhav\",\"ZIP_PIN_Code\":\"45\",\"PF_Employer_s_Contribution\":\"\",\"Experience.displayValue\":\"\",\"Mobile\":\"8826177306\",\"Assigned_Project\":\"\",\"Hobbies\":\"\",\"ModifiedBy.ID\":\"50699000000200001\",\"Subtotal_B\":\"0\",\"Bank_Name\":\"\",\"HRA\":\"\",\"Reporting_To.ID\":\"\",\"Telephone.displayValue\":\"\",\"Work_phone\":\"\",\"Special_Allowance\":\"\",\"Probation_Period_Days\":\"\",\"Expertise\":\"\",\"CreatedTime\":\"1708589963428\",\"Date_of_birth\":\"04-Jun-1996\",\"Account_Type\":\"Others\",\"Stream.ID\":\"\",\"AddedTime\":\"22-Feb-2024 13:49:23\",\"Photo\":\"https://people.zoho.in/api/viewEmployeePhoto?filename=1169130000000200035\",\"PF_UAN_No.displayValue\":\"101826392649\",\"Gratuity\":\"\",\"Notice_Period_days\":\"\",\"PF_Employer_s_Contribution.displayValue\":\"\",\"LocationName.ID\":\"50699000000286973\",\"tabularSections\":{\"Education\":[{}],\"Documents\":[{}],\"Work experience\":[{\"Jobtitle\":\"ASSISTANT MARKETING MANAGER\",\"File_upload\":\"\",\"Employer\":\"RNF TECHNOLOGIES PVT. LIMITED\",\"RELEVANCE\":\"\",\"Previous_JobDesc\":\"\",\"FromDate\":\"\",\"Todate\":\"\",\"tabular.ROWID\":\"50699000005132273\",\"File_upload_downloadUrl\":\"\",\"RELEVANCE.id\":\"\"},{\"Jobtitle\":\"ASSISTANT TEAM LEAD\",\"File_upload\":\"\",\"Employer\":\"REAL TIME DATA SERVICES\",\"RELEVANCE\":\"\",\"Previous_JobDesc\":\"\",\"FromDate\":\"\",\"Todate\":\"\",\"tabular.ROWID\":\"50699000005132275\",\"File_upload_downloadUrl\":\"\",\"RELEVANCE.id\":\"\"},{\"Jobtitle\":\"SR. DIGITAL MARKETING EXECUTIVE\",\"File_upload\":\"\",\"Employer\":\"VALUECODERS\",\"RELEVANCE\":\"\",\"Previous_JobDesc\":\"\",\"FromDate\":\"\",\"Todate\":\"\",\"tabular.ROWID\":\"50699000005132277\",\"File_upload_downloadUrl\":\"\",\"RELEVANCE.id\":\"\"},{\"Jobtitle\":\"DIGITAL MARKETING ASSOCIATE\",\"File_upload\":\"\",\"Employer\":\"ASPIRING THOUGHTS TECHNOLOGIES.\",\"RELEVANCE\":\"\",\"Previous_JobDesc\":\"\",\"FromDate\":\"\",\"Todate\":\"\",\"tabular.ROWID\":\"50699000005132279\",\"File_upload_downloadUrl\":\"\",\"RELEVANCE.id\":\"\"}],\"Dependent\":[{\"Gender1\":\"Female\",\"DependentDOB\":\"30-Nov-1996\",\"Cell_Phone_Number\":\"9990503547\",\"Gender1.id\":\"50699000001326581\",\"DependentRelationship.id\":\"50699000000039999\",\"tabular.ROWID\":\"50699000005135186\",\"Name\":\"Priya Tyagi\",\"DependentRelationship\":\"Wife\"}],\"Project Allocation\":[{}]},\"Stream\":\"\",\"Vendor_Details\":\"\",\"Mobile.country_code\":\"\",\"AddedBy\":\"AL0023 - Rajesh - Kumar\",\"Grade.ID\":\"\",\"Reporting_To\":\"\",\"Photo_downloadUrl\":\"https://people.zoho.in/api/viewEmployeePhoto?filename=1169130000000200035\",\"Experience_Level_at_Joining\":\"6.1 years\",\"Notice_Period_Status\":\"\",\"Grade\":\"\",\"Mediclaim_Personal_Accident_and_GLT_Insurance\":\"\",\"City\":\"NEW DELHI\",\"Internet.displayValue\":\"\",\"Confirmation_Process_Stages.id\":\"50699000002924026\",\"Role\":\"Team member\",\"Employee_type\":\"\",\"IFSC_Code\":\"Option 1\",\"AddedBy.ID\":\"50699000000200001\",\"Notice_Period_days.displayValue\":\"\",\"Pan_Number\":\"ECBPK9632R\",\"LastName\":\"Kumar\",\"Internet\":\"\",\"EmployeeID\":\"AL0205\",\"Resume_downloadUrl\":\"\",\"ZUID\":\"60027344880\",\"Basic\":\"\",\"Aadhaar_Number\":\"399784016817\",\"Performance_Incentive\":\"\",\"Telephone\":\"\",\"Emergency_Contact_Number\":\"9911302791\",\"Second_Reporting_To.ID\":\"\",\"State_Province\":\"SADH NAGAR -2 PALAM COLONY\",\"Work_location\":\"\",\"Account_Type.id\":\"50699000000286155\",\"Nick_Name\":\"Online Marketing, Social Media Marketing, Lead generation, Branding, Branding Management.\",\"Probation_Period_Days.displayValue\":\"\",\"ModifiedTime\":\"1708595112488\",\"Branch\":\"\",\"Designation.ID\":\"50699000000285193\",\"Account_Number\":\"\",\"Age\":\"27\",\"Account_Holder_s_Name\":\"\",\"Marital_status.id\":\"50699000000039987\",\"AboutMe\":\"\",\"Gratuity.displayValue\":\"\",\"Extension\":\"\",\"Probation_Complition_Date\":\"\",\"CTC\":\"0\",\"DateofConfirmation\":\"\",\"Father_s_Name\":\"Satish Kumar\",\"Total\":\"0\",\"Confirmation_Process_Stages\":\"Review Pending\",\"Employeestatus.type\":1,\"Department.ID\":\"50699000004613021\",\"Assigned_Project.ID\":\"\",\"Resume\":\"\"}]},{\"50699000004684150\":[{\"EmailID\":\"samyadeep.chowdhury@audaxlabs.com\",\"Address\":\"\",\"Employee_type.id\":\"50699000003516021\",\"Marital_status\":\"\",\"Gender\":\"\",\"ModifiedBy\":\"ALI 202327 - Samyadeep Roy  - Chowdhury\",\"ApprovalStatus\":\"Approval Not Enabled\",\"Second_Reporting_To\":\"\",\"HRA.displayValue\":\"\",\"Special_Allowance.displayValue\":\"\",\"Department\":\"Engineering\",\"Tags\":\"\",\"Basic.displayValue\":\"\",\"total_experience.displayValue\":\"3 month(s)\",\"Probation_Status\":\"\",\"Employeestatus\":\"Active\",\"Experience\":\"0\",\"Sub_Total_E\":\"\",\"Performance_Incentive.displayValue\":\"\",\"Country\":\"\",\"Sub_Total_A\":\"\",\"Role.ID\":\"50699000000035635\",\"Street_Address\":\"\",\"Dateofexit\":\"\",\"Other_Email\":\"\",\"PF_UAN_No\":\"\",\"LocationName\":\"Kolkata\",\"Mediclaim_Personal_Accident_and_GLT_Insurance.displayValue\":\"\",\"total_experience\":\"3\",\"Reporting_To.MailID\":\"swarupkumarh@audaxlabs.com\",\"Zoho_ID\":50699000004684150,\"Blood_Group_1\":\"\",\"Source_of_hire\":\"Campus\",\"Designation\":\"Intern - Software Engineer\",\"Age.displayValue\":\"\",\"Dateofjoining\":\"01-Dec-2023\",\"FirstName\":\"Samyadeep Roy \",\"ZIP_PIN_Code\":\"\",\"PF_Employer_s_Contribution\":\"\",\"Experience.displayValue\":\"3 month(s)\",\"Mobile\":\"\",\"Assigned_Project\":\"\",\"Hobbies\":\"\",\"ModifiedBy.ID\":\"50699000004684150\",\"Subtotal_B\":\"\",\"Bank_Name\":\"\",\"HRA\":\"\",\"Reporting_To.ID\":\"50699000001604178\",\"Telephone.displayValue\":\"\",\"Work_phone\":\"\",\"Special_Allowance\":\"\",\"Probation_Period_Days\":\"\",\"Expertise\":\"\",\"CreatedTime\":\"1702269297973\",\"Date_of_birth\":\"\",\"Account_Type\":\"\",\"Stream.ID\":\"\",\"AddedTime\":\"11-Dec-2023 10:04:57\",\"Photo\":\"https://people.zoho.in/api/viewEmployeePhoto?filename=1169130000000173007\",\"PF_UAN_No.displayValue\":\"\",\"Gratuity\":\"\",\"Notice_Period_days\":\"\",\"PF_Employer_s_Contribution.displayValue\":\"\",\"LocationName.ID\":\"50699000000286983\",\"tabularSections\":{\"Education\":[{}],\"Documents\":[{}],\"Work experience\":[{}],\"Dependent\":[{}],\"Project Allocation\":[{}]},\"Stream\":\"\",\"Vendor_Details\":\"\",\"Mobile.country_code\":\"\",\"AddedBy\":\"AL0023 - Rajesh - Kumar\",\"Grade.ID\":\"50699000003516011\",\"Reporting_To\":\"Swarup Kumar Haldar AL0158\",\"Photo_downloadUrl\":\"https://people.zoho.in/api/viewEmployeePhoto?filename=1169130000000173007\",\"Source_of_hire.id\":\"50699000004552064\",\"Experience_Level_at_Joining\":\"\",\"Notice_Period_Status\":\"\",\"Grade\":\"INTRN\",\"Mediclaim_Personal_Accident_and_GLT_Insurance\":\"\",\"City\":\"\",\"Internet.displayValue\":\"\",\"Role\":\"Team member\",\"Employee_type\":\"Intern\",\"IFSC_Code\":\"\",\"AddedBy.ID\":\"50699000000200001\",\"Notice_Period_days.displayValue\":\"\",\"Pan_Number\":\"\",\"LastName\":\"Chowdhury\",\"Internet\":\"\",\"EmployeeID\":\"ALI 202327\",\"Resume_downloadUrl\":\"\",\"ZUID\":\"60025735917\",\"Basic\":\"\",\"Aadhaar_Number\":\"\",\"Performance_Incentive\":\"\",\"Telephone\":\"\",\"Emergency_Contact_Number\":\"\",\"Second_Reporting_To.ID\":\"\",\"State_Province\":\"\",\"Work_location\":\"Kolkata\",\"Nick_Name\":\"QA\",\"Probation_Period_Days.displayValue\":\"\",\"ModifiedTime\":\"1702446455972\",\"Branch\":\"\",\"Designation.ID\":\"50699000001166003\",\"Account_Number\":\"\",\"Age\":\"0\",\"Account_Holder_s_Name\":\"\",\"AboutMe\":\"\",\"Gratuity.displayValue\":\"\",\"Extension\":\"\",\"Probation_Complition_Date\":\"30-Nov-2023\",\"CTC\":\"\",\"DateofConfirmation\":\"\",\"Father_s_Name\":\"\",\"Total\":\"\",\"Confirmation_Process_Stages\":\"\",\"Employeestatus.type\":1,\"Department.ID\":\"50699000000285264\",\"Assigned_Project.ID\":\"\",\"Resume\":\"\"}]}],\"message\":\"Data fetched successfully\",\"uri\":\"/api/forms/employee/getRecords\",\"status\":0}}'),",
+				"     FileSystem as string ('silver'),",
+				"     FolderPath as string ('audax/zoho/employees_data'),",
+				"     KeyColumns as string[] (['employee_id','email_id','zoho_id'])",
+				"}",
+				"source(output(",
+				"          employee_id as string,",
+				"          first_name as string,",
+				"          last_name as string,",
+				"          email_id as string,",
+				"          department as string,",
+				"          employee_status as string,",
+				"          zoho_id as long,",
+				"          reporting_to as string,",
+				"          reporting_to_email_id as string,",
+				"          designation as string,",
+				"          gender as string,",
+				"          grade as string,",
+				"          employee_type as string,",
+				"          work_location as string,",
+				"          modified_time as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     inputs:['@input_str' -> ($InputString)],",
+				"     procedureName: 'usp_employee_data_json_parse',",
+				"     schemaName: 'dbo',",
+				"     resultSet: true,",
+				"     format: 'procedure') ~> SqlSource",
+				"source(output(",
+				"          employee_id as string,",
+				"          first_name as string,",
+				"          last_name as string,",
+				"          email_id as string,",
+				"          department as string,",
+				"          employee_status as string,",
+				"          zoho_id as long,",
+				"          reporting_to as string,",
+				"          reporting_to_email_id as string,",
+				"          designation as string,",
+				"          gender as string,",
+				"          grade as string,",
+				"          employee_type as string,",
+				"          work_location as string,",
+				"          modified_time as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delta',",
+				"     fileSystem: ($FileSystem),",
+				"     folderPath: ($FolderPath)) ~> SourceDelta",
+				"SqlSource alterRow(upsertIf(true())) ~> AlterRowToInsert",
+				"SourceDelta filter(employee_status != 'Active') ~> FilterTransformation",
+				"FilterTransformation alterRow(deleteIf(true())) ~> AlterRowToDelete",
+				"AlterRowToInsert sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: ($FileSystem),",
+				"     folderPath: ($FolderPath),",
+				"     mergeSchema: true,",
+				"     autoCompact: true,",
+				"     optimizedWrite: true,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:($KeyColumns),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     saveOrder: 1) ~> InsertDeltaSink",
+				"AlterRowToDelete sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: ($FileSystem),",
+				"     folderPath: ($FolderPath),",
+				"     mergeSchema: false,",
+				"     autoCompact: true,",
+				"     optimizedWrite: true,",
+				"     vacuum: 0,",
+				"     deletable: true,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: false,",
+				"     keys:($KeyColumns),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     saveOrder: 2) ~> DeleteDeltaSink"
+			]
+		}
+	}
+}

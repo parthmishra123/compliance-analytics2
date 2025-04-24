@@ -1,0 +1,199 @@
+{
+	"name": "pl_schema_validation_attendance",
+	"properties": {
+		"activities": [
+			{
+				"name": "get_metadata_source",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_adls_gen2_delimited",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileSystem": {
+								"value": "@pipeline().parameters.SourceFileSystem",
+								"type": "Expression"
+							},
+							"Directory": {
+								"value": "@pipeline().parameters.SourceDirectory",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@pipeline().parameters.SourceFileName",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"structure"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "get_metadata_reference_file",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_adls_gen2_delimited",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileSystem": {
+								"value": "@pipeline().parameters.ReferenceFileSystem",
+								"type": "Expression"
+							},
+							"Directory": {
+								"value": "@pipeline().parameters.ReferenceDirectory",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@pipeline().parameters.ReferenceFileName",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"structure"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "if_check_schema_validation",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "get_metadata_source",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "get_metadata_reference_file",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('get_metadata_source').output.structure,activity('get_metadata_reference_file').output.structure)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "set_var_is_schema_correct",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "pipelineReturnValue",
+								"value": [
+									{
+										"key": "is_schema_correct",
+										"value": {
+											"type": "Boolean",
+											"content": false
+										}
+									}
+								],
+								"setSystemVariable": true
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "set_var_is_scheme_correct",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "pipelineReturnValue",
+								"value": [
+									{
+										"key": "is_schema_correct",
+										"value": {
+											"type": "Boolean",
+											"content": true
+										}
+									}
+								],
+								"setSystemVariable": true
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"SourceFileSystem": {
+				"type": "string",
+				"defaultValue": "bonze"
+			},
+			"SourceDirectory": {
+				"type": "string",
+				"defaultValue": "audax/punch_records"
+			},
+			"SourceFileName": {
+				"type": "string"
+			},
+			"ReferenceFileSystem": {
+				"type": "string",
+				"defaultValue": "bronze"
+			},
+			"ReferenceDirectory": {
+				"type": "string",
+				"defaultValue": "audax/reference"
+			},
+			"ReferenceFileName": {
+				"type": "string",
+				"defaultValue": "punch_records_schema_reference.csv"
+			}
+		},
+		"folder": {
+			"name": "Common"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,12 @@
+{
+	"name": "ds_synapse_serverless_sql",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_synapse_serverless_sql",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": []
+	}
+}

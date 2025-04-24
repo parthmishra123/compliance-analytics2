@@ -1,0 +1,59 @@
+{
+	"name": "df_zoho_api_get_leaves_data",
+	"properties": {
+		"folder": {
+			"name": "Zoho/Leaves"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_rest_api",
+						"type": "DatasetReference"
+					},
+					"name": "SourceZohoApi"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_adls_gen2_json",
+						"type": "DatasetReference"
+					},
+					"name": "SinkJson"
+				}
+			],
+			"transformations": [],
+			"scriptLines": [
+				"parameters{",
+				"     ZohoAccessToken as string,",
+				"     SinkFileName as string,",
+				"     ModifiedTime as string",
+				"}",
+				"source(output(",
+				"          body as ({Added By} as string, {Added time} as string, ApprovalStatus as string, ApprovalTime as string, {Days/Hours Taken} as double, {Employee ID} as string, From as string, {Leave type} as string, {Medical certificate} as string, {Medical certificate_downloadUrl} as string, {Modified By} as string, {Modified time} as string, {Reason for leave} as string, To as string, Unit as string, approvalDetails as (approvalCompletionTime as string, approvalStartTime as string, approvers as (comment as string, displayName as string, id as long, status as string, time as string, type as string)[], isAutoApproved as boolean), createdTime as long, modifiedTime as long, ownerID as long, ownerName as string, recordId as long),",
+				"          headers as [string,string]",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     httpMethod: 'GET',",
+				"     timeout: 30,",
+				"     requestInterval: 0,",
+				"     headers: ['Authorization' -> (concat('Zoho-oauthtoken ',$ZohoAccessToken))],",
+				"     queryParameters: ['modifiedtime' -> ($ModifiedTime)],",
+				"     paginationRules: ['supportRFC5988' -> 'true'],",
+				"     responseFormat: ['type' -> 'json', 'documentForm' -> 'documentPerLine']) ~> SourceZohoApi",
+				"SourceZohoApi sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:[($SinkFileName)],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> SinkJson"
+			]
+		}
+	}
+}

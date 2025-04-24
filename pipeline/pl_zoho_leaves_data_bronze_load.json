@@ -1,0 +1,291 @@
+{
+	"name": "pl_zoho_leaves_data_bronze_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "execute_pipeline_generate_access_token",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_zoho_authorization_access_token",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "lookup_zoho_api_access_token",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "execute_pipeline_generate_access_token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "ds_adls_gen2_delimited",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileSystem": {
+								"value": "@pipeline().parameters.LookupFileSystem",
+								"type": "Expression"
+							},
+							"Directory": {
+								"value": "@pipeline().parameters.LookupDirectory",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@pipeline().parameters.LookupFileName",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			},
+			{
+				"name": "lookup_last_modified_dt_from_watermark_table",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "execute_pipeline_generate_access_token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT last_loaded_dt\nFROM water_mark \nWHERE object = 'leaves'",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_azure_sql_resource_mgmt_database",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "data_flow_zoho_leave_data_bronze_load",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "lookup_last_modified_dt_from_watermark_table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "lookup_zoho_api_access_token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_zoho_leaves_api_data_bronze_load",
+						"type": "DataFlowReference",
+						"parameters": {
+							"ZohoAccessToken": {
+								"value": "'@{activity('lookup_zoho_api_access_token').output.firstRow.access_token}'",
+								"type": "Expression"
+							},
+							"FromDate": {
+								"value": "'@{formatDateTime(activity('lookup_last_modified_dt_from_watermark_table').output.firstRow.last_loaded_dt,'dd-MMM-yyyy')}'",
+								"type": "Expression"
+							},
+							"ToDate": {
+								"value": "'@{formatDateTime(pipeline().TriggerTime,'dd-MMM-yyyy')}'",
+								"type": "Expression"
+							},
+							"SinkFileName": {
+								"value": "'@{concat('employee_leave_data_',formatDateTime(pipeline().TriggerTime,'yyyyMMddHHmmss'),'.json')}'",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"SourceZohoApi": {
+								"BaseUrl": {
+									"value": "@pipeline().parameters.BaseUrl",
+									"type": "Expression"
+								}
+							},
+							"SInkJson": {
+								"FileSystem": {
+									"value": "@pipeline().parameters.SinkFileSystem",
+									"type": "Expression"
+								},
+								"Directory": {
+									"value": "@pipeline().parameters.SinkDirectory",
+									"type": "Expression"
+								},
+								"FileName": {
+									"value": "@concat('employee_leave_data_',formatDateTime(pipeline().TriggerTime,'yyyyMMddHHmmss'),'.json')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 16,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "stored_procedure_update_water_mark_table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "data_flow_zoho_leave_data_bronze_load",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[update_water_mark_table]",
+					"storedProcedureParameters": {
+						"last_loaded_dt": {
+							"value": {
+								"value": "@formatDateTime(pipeline().TriggerTime,'dd-MMM-yyyy')",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"last_loaded_dt_epoch": {
+							"value": null,
+							"type": "Int64"
+						},
+						"object": {
+							"value": "leaves",
+							"type": "String"
+						},
+						"source": {
+							"value": "zoho",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_azure_sql_resource_mgmt_database",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "set_var_file_name",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "stored_procedure_update_water_mark_table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pipelineReturnValue",
+					"value": [
+						{
+							"key": "FileName",
+							"value": {
+								"type": "Expression",
+								"content": "@concat('employee_leave_data_',formatDateTime(pipeline().TriggerTime,'yyyyMMddHHmmss'),'.json')"
+							}
+						}
+					],
+					"setSystemVariable": true
+				}
+			}
+		],
+		"parameters": {
+			"LookupFileSystem": {
+				"type": "String",
+				"defaultValue": "bronze"
+			},
+			"LookupDirectory": {
+				"type": "String",
+				"defaultValue": "audax/zoho/access_token"
+			},
+			"LookupFileName": {
+				"type": "String",
+				"defaultValue": "zoho_api_access_token.csv"
+			},
+			"BaseUrl": {
+				"type": "String",
+				"defaultValue": "https://people.zoho.in/people/api/v2/leavetracker/leaves/records"
+			},
+			"SinkFileSystem": {
+				"type": "String",
+				"defaultValue": "bronze"
+			},
+			"SinkDirectory": {
+				"type": "String",
+				"defaultValue": "audax/zoho/leave_data"
+			}
+		},
+		"folder": {
+			"name": "ResourceManagement/Zoho/Leaves"
+		},
+		"annotations": []
+	}
+}

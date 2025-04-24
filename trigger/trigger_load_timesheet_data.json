@@ -1,0 +1,35 @@
+{
+	"name": "trigger_load_timesheet_data",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "pl_zoho_timesheets_data_silver_load",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Week",
+				"interval": 1,
+				"startTime": "2024-03-21T10:09:00",
+				"timeZone": "India Standard Time",
+				"schedule": {
+					"minutes": [
+						30
+					],
+					"hours": [
+						12
+					],
+					"weekDays": [
+						"Monday"
+					]
+				}
+			}
+		}
+	}
+}

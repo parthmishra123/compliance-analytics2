@@ -1,0 +1,158 @@
+{
+	"name": "pl_audax_punch_data_silver_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "df_process_csv_to_delta",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_csv_to_delta",
+						"type": "DataFlowReference",
+						"parameters": {
+							"FileName": {
+								"value": "'@{pipeline().parameters.SourceFileName}'",
+								"type": "Expression"
+							},
+							"BatchId": {
+								"value": "'@{coalesce(pipeline().parameters.BatchId, pipeline().TriggerTime)}'",
+								"type": "Expression"
+							},
+							"SinkFileSystem": {
+								"value": "'@{pipeline().parameters.SinkFileSystem}'",
+								"type": "Expression"
+							},
+							"SinkDirectory": {
+								"value": "'@{pipeline().parameters.SinkDirectory}'",
+								"type": "Expression"
+							},
+							"KeyColumns": {
+								"value": "@pipeline().parameters.KeyColumns",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"CsvSource": {
+								"FileSystem": {
+									"value": "@pipeline().parameters.SourceFileSystem",
+									"type": "Expression"
+								},
+								"Directory": {
+									"value": "@pipeline().parameters.SourceDirectory",
+									"type": "Expression"
+								},
+								"FileName": {
+									"value": "@pipeline().parameters.SourceFileName",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 16,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "execute_pl_archive_file",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "df_process_csv_to_delta",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_archive_file",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"SourceFileSystem": {
+							"value": "@pipeline().parameters.SourceFileSystem",
+							"type": "Expression"
+						},
+						"SinkFileSystem": {
+							"value": "@pipeline().parameters.SourceFileSystem",
+							"type": "Expression"
+						},
+						"SourceDirectory": {
+							"value": "@pipeline().parameters.SourceDirectory",
+							"type": "Expression"
+						},
+						"SinkDirectory": {
+							"value": "@pipeline().parameters.ArchiveDirectory",
+							"type": "Expression"
+						},
+						"SourceFileName": {
+							"value": "@pipeline().parameters.SourceFileName",
+							"type": "Expression"
+						},
+						"SinkFileName": {
+							"value": "@pipeline().parameters.SourceFileName",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SourceFileSystem": {
+				"type": "String",
+				"defaultValue": "bronze"
+			},
+			"SourceDirectory": {
+				"type": "String",
+				"defaultValue": "audax/attendance"
+			},
+			"SourceFileName": {
+				"type": "String",
+				"defaultValue": "DailyAttendanceLogsDetails-05-Feb-24_to_09-Feb-24.csv"
+			},
+			"BatchId": {
+				"type": "String"
+			},
+			"SinkFileSystem": {
+				"type": "String",
+				"defaultValue": "silver"
+			},
+			"SinkDirectory": {
+				"type": "String",
+				"defaultValue": "audax/attendance"
+			},
+			"ArchiveDirectory": {
+				"type": "String",
+				"defaultValue": "archive/audax/attendance"
+			},
+			"KeyColumns": {
+				"type": "array",
+				"defaultValue": [
+					"date",
+					"employee_code"
+				]
+			}
+		},
+		"folder": {
+			"name": "ResourceManagement/PunchData"
+		},
+		"annotations": []
+	}
+}

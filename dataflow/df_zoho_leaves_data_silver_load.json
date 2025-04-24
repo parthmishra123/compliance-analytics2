@@ -1,0 +1,97 @@
+{
+	"name": "df_zoho_leaves_data_silver_load",
+	"properties": {
+		"folder": {
+			"name": "Zoho/Leaves"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_synapse_serverless_sql",
+						"type": "DatasetReference"
+					},
+					"name": "SourceSql"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "SinkDelta"
+				}
+			],
+			"transformations": [
+				{
+					"name": "CastDate"
+				},
+				{
+					"name": "DerivedColumnBatchId"
+				},
+				{
+					"name": "AlterRowTransformation"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     InputString as string ('{     \"records\": {         \"50699000005935001\": {             \"Zoho.ID\": 50699000005935001,             \"From\": \"01-Jul-2024\",             \"Leavetype.ID\": 50699000000200059,             \"Unit\": \"Days\",             \"ApprovalStatus\": \"Approved\",             \"Reason\": \"Leave Request for Medical Check-Up\",             \"TeamEmailID\": \"rakeshs@audaxlabs.com, baidyanathk@audaxlabs.com\",             \"Type\": \"PAID\",             \"Employee\": \"Rana Omanshu  Goutam\",             \"Leavetype\": \"Casual/Sick Leave\",             \"Days\": {                 \"01-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 }             },             \"To\": \"01-Jul-2024\",             \"EmployeeId\": \"AL0162\",             \"ZUID\": 60014680746,             \"Employee.ID\": 50699000001160031,             \"DateOfRequest\": \"01-Jul-2024\"         },         \"50699000005934809\": {             \"Zoho.ID\": 50699000005934809,             \"From\": \"10-Jul-2024\",             \"Leavetype.ID\": 50699000000200067,             \"Unit\": \"Days\",             \"ApprovalStatus\": \"Pending\",             \"Type\": \"PAID\",             \"Employee\": \"Ritu Ranjan Gupta\",             \"Leavetype\": \"Paid Leave\",             \"Days\": {                 \"11-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"10-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"12-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 }             },             \"To\": \"12-Jul-2024\",             \"EmployeeId\": \"AL0064\",             \"ZUID\": 60010277604,             \"Employee.ID\": 50699000000293005,             \"DateOfRequest\": \"30-Jun-2024\"         },         \"50699000005880248\": {             \"Zoho.ID\": 50699000005880248,             \"From\": \"08-Jul-2024\",             \"Leavetype.ID\": 50699000000200067,             \"Unit\": \"Days\",             \"ApprovalStatus\": \"Approved\",             \"Reason\": \"Leave application for self marriage ceremony.\",             \"Type\": \"PAID\",             \"Employee\": \"Virpal Yadav\",             \"Leavetype\": \"Paid Leave\",             \"Days\": {                 \"09-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"10-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"19-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"25-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"26-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"12-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"13-Jul-2024\": {                     \"LeaveCount\": \"0.0\",                     \"Session\": 1                 },                 \"16-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"22-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"11-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"17-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"14-Jul-2024\": {                     \"LeaveCount\": \"0.0\",                     \"Session\": 1                 },                 \"21-Jul-2024\": {                     \"LeaveCount\": \"0.0\",                     \"Session\": 1                 },                 \"08-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"23-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"18-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"15-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"24-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"20-Jul-2024\": {                     \"LeaveCount\": \"0.0\",                     \"Session\": 1                 }             },             \"To\": \"26-Jul-2024\",             \"EmployeeId\": \"AL0074\",             \"ZUID\": 60010277435,             \"Employee.ID\": 50699000000292025,             \"DateOfRequest\": \"19-Jun-2024\"         },         \"50699000005943022\": {             \"Zoho.ID\": 50699000005943022,             \"From\": \"03-Jul-2024\",             \"Leavetype.ID\": 50699000000200059,             \"Unit\": \"Days\",             \"ApprovalStatus\": \"Pending\",             \"Reason\": \"Sick leave for a day due to high acidity and loose motion.\",             \"TeamEmailID\": \"mukeshk@audaxlabs.com\",             \"Type\": \"PAID\",             \"Employee\": \"Mukesh  Kumar\",             \"Leavetype\": \"Casual/Sick Leave\",             \"Days\": {                 \"03-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 }             },             \"To\": \"03-Jul-2024\",             \"EmployeeId\": \"AL0161\",             \"ZUID\": 60014679973,             \"Employee.ID\": 50699000001157191,             \"DateOfRequest\": \"03-Jul-2024\"         },         \"50699000005936292\": {             \"Zoho.ID\": 50699000005936292,             \"From\": \"05-Jul-2024\",             \"Leavetype.ID\": 50699000000200059,             \"Unit\": \"Days\",             \"ApprovalStatus\": \"Pending\",             \"Reason\": \"Out of station\",             \"Type\": \"PAID\",             \"Employee\": \"Mahendra Pratap  Singh\",             \"Leavetype\": \"Casual/Sick Leave\",             \"Days\": {                 \"05-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 }             },             \"To\": \"05-Jul-2024\",             \"EmployeeId\": \"AL0132\",             \"ZUID\": 60013441726,             \"Employee.ID\": 50699000000854005,             \"DateOfRequest\": \"02-Jul-2024\"         },         \"50699000005942001\": {             \"Zoho.ID\": 50699000005942001,             \"From\": \"02-Jul-2024\",             \"Leavetype.ID\": 50699000000200067,             \"Unit\": \"Days\",             \"ApprovalStatus\": \"Pending\",             \"Type\": \"PAID\",             \"Employee\": \"Rajat kumar  Sharma\",             \"Leavetype\": \"Paid Leave\",             \"Days\": {                 \"02-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 }             },             \"To\": \"02-Jul-2024\",             \"EmployeeId\": \"AL0160\",             \"ZUID\": 60014680621,             \"Employee.ID\": 50699000001162461,             \"DateOfRequest\": \"01-Jul-2024\"         },         \"50699000005943002\": {             \"Zoho.ID\": 50699000005943002,             \"From\": \"03-Jul-2024\",             \"Leavetype.ID\": 50699000000200059,             \"Unit\": \"Days\",             \"ApprovalStatus\": \"Pending\",             \"Reason\": \"Personal work\",             \"Type\": \"PAID\",             \"Employee\": \"Rohit Kumar\",             \"Leavetype\": \"Casual/Sick Leave\",             \"Days\": {                 \"03-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"04-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 }             },             \"To\": \"04-Jul-2024\",             \"EmployeeId\": \"AL0147\",             \"ZUID\": 60015590859,             \"Employee.ID\": 50699000001429101,             \"DateOfRequest\": \"02-Jul-2024\"         },         \"50699000005895001\": {             \"Zoho.ID\": 50699000005895001,             \"From\": \"03-Jul-2024\",             \"Leavetype.ID\": 50699000000200059,             \"Unit\": \"Days\",             \"ApprovalStatus\": \"Pending\",             \"Type\": \"PAID\",             \"Employee\": \"Mousumi Paul\",             \"Leavetype\": \"Casual/Sick Leave\",             \"Days\": {                 \"03-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"04-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 },                 \"05-Jul-2024\": {                     \"LeaveCount\": \"1.0\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"09:00\"                 }             },             \"To\": \"05-Jul-2024\",             \"EmployeeId\": \"AL0185\",             \"ZUID\": 60021805090,             \"Employee.ID\": 50699000003348459,             \"DateOfRequest\": \"21-Jun-2024\"         },         \"50699000005938129\": {             \"Zoho.ID\": 50699000005938129,             \"From\": \"03-Jul-2024\",             \"Leavetype.ID\": 50699000000200059,             \"Unit\": \"Days\",             \"ApprovalStatus\": \"Approved\",             \"TeamEmailID\": \"rohitg@audaxlabs.com\",             \"Type\": \"PAID\",             \"Employee\": \"Rohit  Ghosh\",             \"Leavetype\": \"Casual/Sick Leave\",             \"Days\": {                 \"03-Jul-2024\": {                     \"LeaveCount\": \"0.5\",                     \"EndTime\": \"18:00\",                     \"StartTime\": \"13:30\",                     \"Session\": 2                 }             },             \"To\": \"03-Jul-2024\",             \"EmployeeId\": \"AL0116\",             \"ZUID\": 60011127029,             \"Employee.ID\": 50699000000402001,             \"DateOfRequest\": \"02-Jul-2024\"         }     } }'),",
+				"     BatchId as string,",
+				"     SourceFileName as string,",
+				"     SinkFileSystem as string,",
+				"     SinkFolderPath as string,",
+				"     KeyColumns as string[]",
+				"}",
+				"source(output(",
+				"          employee_id as string,",
+				"          employee_name as string,",
+				"          date as string,",
+				"          leave_type as string,",
+				"          approval_status as string,",
+				"          zuid as string,",
+				"          leave_count as double,",
+				"          session as integer,",
+				"          start_time as string,",
+				"          end_time as string,",
+				"          email_id as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     inputs:['@input_str' -> ($InputString)],",
+				"     procedureName: 'usp_leave_data_parse',",
+				"     schemaName: 'dbo',",
+				"     resultSet: true,",
+				"     format: 'procedure') ~> SourceSql",
+				"SourceSql cast(output(",
+				"          date as date 'dd-MMM-yyyy'",
+				"     ),",
+				"     errors: true) ~> CastDate",
+				"CastDate derive(file_name = $SourceFileName,",
+				"          batch_id = $BatchId) ~> DerivedColumnBatchId",
+				"DerivedColumnBatchId alterRow(upsertIf(true())) ~> AlterRowTransformation",
+				"AlterRowTransformation sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: ($SinkFileSystem),",
+				"     folderPath: ($SinkFolderPath),",
+				"     mergeSchema: true,",
+				"     autoCompact: true,",
+				"     optimizedWrite: true,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:($KeyColumns),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SinkDelta"
+			]
+		}
+	}
+}

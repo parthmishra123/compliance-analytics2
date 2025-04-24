@@ -1,0 +1,56 @@
+{
+	"name": "pl_zoho_leaves_data_load_old",
+	"properties": {
+		"activities": [
+			{
+				"name": "execute_pl_zoho_leaves_data_bronze_load",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_zoho_leaves_data_bronze_load_old",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "execute_pl_zoho_leaves_data_silver_load",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "execute_pl_zoho_leaves_data_bronze_load",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_zoho_leaves_data_silver_load_old",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"SourceFileName": {
+							"value": "@activity('execute_pl_zoho_leaves_data_bronze_load').output.pipelineReturnValue.FileName",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "ResourceManagement/Zoho/Leaves"
+		},
+		"annotations": []
+	}
+}

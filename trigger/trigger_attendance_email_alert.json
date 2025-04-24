@@ -1,0 +1,35 @@
+{
+	"name": "trigger_attendance_email_alert",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "pl_report_attendance_email_alert",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Week",
+				"interval": 1,
+				"startTime": "2024-05-09T17:06:00",
+				"timeZone": "India Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						15
+					],
+					"weekDays": [
+						"Monday"
+					]
+				}
+			}
+		}
+	}
+}

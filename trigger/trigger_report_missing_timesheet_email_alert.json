@@ -1,0 +1,35 @@
+{
+	"name": "trigger_report_missing_timesheet_email_alert",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "pl_report_zoho_missing_timesheet_alert",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Week",
+				"interval": 1,
+				"startTime": "2024-05-09T17:58:00",
+				"timeZone": "India Standard Time",
+				"schedule": {
+					"minutes": [
+						30
+					],
+					"hours": [
+						13
+					],
+					"weekDays": [
+						"Monday"
+					]
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,177 @@
+{
+	"name": "nb_report_zoho_missing_timesheet_email_alert_to_manager",
+	"properties": {
+		"folder": {
+			"name": "Resource Management/Report/Timesheet"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "audaxsparkpool",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "df6b5369-465f-437d-906c-5bad81909b5c"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/69a89c4c-53f5-464f-b379-e208fddb5117/resourceGroups/Attendance_Management_System/providers/Microsoft.Synapse/workspaces/compliance-analytics-synapse-ws/bigDataPools/audaxsparkpool",
+				"name": "audaxsparkpool",
+				"type": "Spark",
+				"endpoint": "https://compliance-analytics-synapse-ws.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/audaxsparkpool",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.4",
+				"nodeCount": 10,
+				"cores": 8,
+				"memory": 56,
+				"automaticScaleJobs": false
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"tags": [
+						"parameters"
+					]
+				},
+				"source": [
+					"email_conn_string = 'endpoint=https://audax-resource-mgmt-communication-services.india.communication.azure.com/;accesskey=8hY8CVEqt8W9qshzXQ24rcwuZtqeD3DuW3qBOcNqCAuHl0qap+U+ISX+8B8Woxy6zGBPZK9bVYZFRGrFAZ9aqw=='\r\n",
+					"to_address = 'jatin.chauhan@audaxlabs.com'\r\n",
+					"sender_address = 'DoNotReply@34a80a5b-19cd-4683-81e0-fddeda5ec562.azurecomm.net'\r\n",
+					"subject = 'Team Members\\'s Missing Timesheets for Last Week'\r\n",
+					"template_path = 'abfss://audaxresourcemgmtfs@audaxresourcemgmtsa.dfs.core.windows.net/synapse/workspaces/email_templates/missing_timesheet_email_to_manager_alert.txt'\r\n",
+					"is_high_importance = True\r\n",
+					"manager_name = 'Jatin Chauhan'\r\n",
+					"start_date = '2024-03-24'\r\n",
+					"end_date = '2024-03-30'\r\n",
+					"email_content = '<table><tr><th>Employee Id</th><th>Name</th><th>Email Id</th><th>Submitted Hours</th><th>Leaves Hours</th><th>Holidays Hours</th><th>Total Hours</th></tr><tr><td>AL0003</td><td >Sunil Kumar Kushwaha</td><td >sunilk@audaxlabs.com</td><td >0</td><td >8</td><td >0</td><td >8</td></tr><tr><td>AL0004</td><td >Baidyanath  Kumar</td><td >baidyanathk@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0064</td><td >Ritu Ranjan Gupta</td><td >rituranjang@audaxlabs.com</td><td >0</td><td >8</td><td >0</td><td >8</td></tr><tr><td>AL0065</td><td >Ashutosh Singh</td><td >ashutoshs@audaxlabs.com</td><td >0</td><td >24</td><td >0</td><td >24</td></tr><tr><td>AL0072</td><td >Himanshu Madaan</td><td >himanshum@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0074</td><td >Virpal Yadav</td><td >virpaly@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0090</td><td >Govind Kumar</td><td >govindc@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0093</td><td >Swati Gupta</td><td >swatig@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0094</td><td >Sudhir Sahani</td><td >sudhirs@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0095</td><td >Mohammed Ali</td><td >mohammeda@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0096</td><td >Shini Saxena</td><td >shinis@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0099</td><td >Anchal Kumar Sahu</td><td >anchalkumars@audaxlabs.com</td><td >16</td><td >0</td><td >0</td><td >16</td></tr><tr><td>AL0109</td><td >Saraswati Kumari</td><td >saraswatik@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0113</td><td >Manish Rawat</td><td >manishr@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0117</td><td >Nikhil Nikhil</td><td >nikhil@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0118</td><td >Varun Saini</td><td >varuns@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0119</td><td >Satyam Mishra</td><td >satyamm@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0120</td><td >Suraj Chauhan</td><td >surajc@audaxlabs.com</td><td >0</td><td >16</td><td >0</td><td >16</td></tr><tr><td>AL0128</td><td >Rakesh Kumar</td><td >rakeshk@audaxlabs.com</td><td >16</td><td >0</td><td >0</td><td >16</td></tr><tr><td>AL0134</td><td >Reema Rani</td><td >reemar@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0135</td><td >Pawan Singh  Bora</td><td >pawansinghb@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0145</td><td >Rohit Singh</td><td >rohits@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0150</td><td >Jatin Kumar Chauhan</td><td >jatin.chauhan@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0156</td><td >Jyoti Tanwar</td><td >jyoti.tanwar@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0159</td><td >Ujjwal tKumar t Mishra</td><td >ujjwalkumarm@audaxlabs.com</td><td >0</td><td >8</td><td >0</td><td >8</td></tr><tr><td>AL0161</td><td >Mukesh  Kumar</td><td >mukeshk@audaxlabs.com</td><td >0</td><td >16</td><td >0</td><td >16</td></tr><tr><td>AL0162</td><td >Rana Omanshu  Goutam</td><td >ranaomanshug@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0169</td><td >Saurabh  Gautam</td><td >saurabhg@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0173</td><td >Vaishali  Saini</td><td >vaishalis@audaxlabs.com</td><td >0</td><td >8</td><td >0</td><td >8</td></tr><tr><td>AL0186</td><td >Prashant Bhushan</td><td >prashant.bhushan@audaxlabs.com</td><td >0</td><td >16</td><td >0</td><td >16</td></tr><tr><td>AL0187</td><td >Mridul Agarwal</td><td >mridul.agarwal@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0190</td><td >Mansi  Pal</td><td >mansi.pal@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0192</td><td >Utkarsh Ojha</td><td >utkarsh.ojha@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0198</td><td >Vaishnavi Khandelwal</td><td >vaishnavi.khandelwal@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0199</td><td >Prateek  Sehrawat</td><td >prateek.sehrawat@audaxlabs.com</td><td >16</td><td >0</td><td >0</td><td >16</td></tr><tr><td>AL0202</td><td >Ayushi  Singh</td><td >ayushi.singh@audaxlabs.com</td><td >16</td><td >0</td><td >0</td><td >16</td></tr><tr><td>AL0203</td><td >Debangana  Biswas</td><td >debangana.biswas@audaxlabs.com</td><td >0</td><td >8</td><td >0</td><td >8</td></tr><tr><td>AL0204</td><td >Sneha Das  Karmakar</td><td >sneha.karmakar@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0206</td><td >Udit  Sharma</td><td >udit.sharma@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>AL0208</td><td >Parth  Mishra</td><td >parth.mishra@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr><tr><td>ALC050</td><td >Ritesh  Choudhary</td><td >ritesh.choudhary@audaxlabs.com</td><td >0</td><td >0</td><td >0</td><td >0</td></tr></table>'"
+				],
+				"execution_count": 5
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from jinja2 import Template\r\n",
+					"from azure.communication.email import EmailClient\r\n",
+					"import time"
+				],
+				"execution_count": 6
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"try:\r\n",
+					"    df = spark.sparkContext.textFile(template_path)\r\n",
+					"    all_text = df.collect()    \r\n",
+					"    template = \"\\n\".join(all_text)\r\n",
+					"except Exception as e:\r\n",
+					"    raise(e)"
+				],
+				"execution_count": 7
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"def main():\r\n",
+					"    try:\r\n",
+					"        # create a Jinja2 template object\r\n",
+					"        jinja_template = Template(template)\r\n",
+					"\r\n",
+					"        # render the template with dynamic values\r\n",
+					"        rendered_template  = jinja_template.render(manager_name=manager_name, \r\n",
+					"            start_date=start_date, \r\n",
+					"            end_date=end_date,\r\n",
+					"            email_content=email_content\r\n",
+					"        )\r\n",
+					"\r\n",
+					"        client = EmailClient.from_connection_string(email_conn_string)\r\n",
+					"\r\n",
+					"        addresses = to_address.split(',')\r\n",
+					"        receivers = [{\"address\": address} for address in addresses]\r\n",
+					"\r\n",
+					"        message = {\r\n",
+					"            \"senderAddress\": sender_address,\r\n",
+					"            \"recipients\":  {\r\n",
+					"                \"to\": receivers,\r\n",
+					"            },\r\n",
+					"            \"content\": {\r\n",
+					"                \"subject\": subject,\r\n",
+					"                \"html\": rendered_template,\r\n",
+					"            }\r\n",
+					"        }\r\n",
+					"\r\n",
+					"        if is_high_importance:\r\n",
+					"            message[\"headers\"] = {\"x-priority\": 1}\r\n",
+					"\r\n",
+					"        poller = client.begin_send(message)\r\n",
+					"        time.sleep(10)\r\n",
+					"        result = poller.result()\r\n",
+					"        print('Email sent successfully.')\r\n",
+					"\r\n",
+					"    except Exception as ex:\r\n",
+					"        raise(ex)\r\n",
+					"\r\n",
+					"main()"
+				],
+				"execution_count": 8
+			}
+		]
+	}
+}

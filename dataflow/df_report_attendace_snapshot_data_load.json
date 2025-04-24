@@ -1,0 +1,192 @@
+{
+	"name": "df_report_attendace_snapshot_data_load",
+	"properties": {
+		"folder": {
+			"name": "Report/Attendance"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_synapse_serverless_sql",
+						"type": "DatasetReference"
+					},
+					"name": "SqlSource"
+				},
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "SourceDelta"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "InsertDeltaSink"
+				},
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "DeleteSinkDelta"
+				}
+			],
+			"transformations": [
+				{
+					"name": "CastTransformation"
+				},
+				{
+					"name": "DerivedColumnTransformation"
+				},
+				{
+					"name": "FilterTransformation"
+				},
+				{
+					"name": "AlterRowToDeleteRows"
+				},
+				{
+					"name": "AlterRowToInsert"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     SinkFileSystem as string,",
+				"     SinkDirectory as string,",
+				"     StartDate as string,",
+				"     EndDate as string,",
+				"     KeyColumns as string[],",
+				"     BatchId as string",
+				"}",
+				"source(output(",
+				"          employee_id as string,",
+				"          first_name as string,",
+				"          last_name as string,",
+				"          email_id as string,",
+				"          reporting_to as string,",
+				"          reporting_to_email_id as string,",
+				"          designation as string,",
+				"          gender as string,",
+				"          grade as string,",
+				"          employee_type as string,",
+				"          expected_days as float,",
+				"          actual_days as float,",
+				"          expected_hours as float,",
+				"          actual_hours as double,",
+				"          days_present_in_office as float,",
+				"          total_days_leave_taken as float,",
+				"          no_of_holidays as float,",
+				"          total_hours_in_office as float,",
+				"          work_location as string,",
+				"          is_days_short as integer,",
+				"          is_hours_short as integer,",
+				"          from as date,",
+				"          to as date,",
+				"          week_no as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     inputs:['@start_date' -> ($StartDate),'@end_date' -> ($EndDate)],",
+				"     procedureName: 'usp_attendance_weekly_snapshot',",
+				"     schemaName: 'dbo',",
+				"     resultSet: true,",
+				"     format: 'procedure') ~> SqlSource",
+				"source(output(",
+				"          employee_id as string,",
+				"          first_name as string,",
+				"          last_name as string,",
+				"          email_id as string,",
+				"          reporting_to as string,",
+				"          reporting_to_email_id as string,",
+				"          designation as string,",
+				"          gender as string,",
+				"          grade as string,",
+				"          employee_type as string,",
+				"          expected_days as float,",
+				"          actual_days as float,",
+				"          expected_hours as float,",
+				"          actual_hours as float,",
+				"          days_present_in_office as float,",
+				"          total_days_leave_taken as float,",
+				"          no_of_holidays as float,",
+				"          total_hours_in_office as float,",
+				"          work_location as string,",
+				"          is_days_short as integer,",
+				"          is_hours_short as integer,",
+				"          from as date,",
+				"          to as date,",
+				"          week_no as integer,",
+				"          batch_id as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delta',",
+				"     fileSystem: ($SinkFileSystem),",
+				"     folderPath: ($SinkDirectory)) ~> SourceDelta",
+				"SqlSource cast(output(",
+				"          expected_days as float,",
+				"          actual_days as float,",
+				"          expected_hours as float,",
+				"          actual_hours as float,",
+				"          days_present_in_office as float,",
+				"          total_days_leave_taken as float,",
+				"          no_of_holidays as float,",
+				"          total_hours_in_office as float",
+				"     ),",
+				"     errors: true) ~> CastTransformation",
+				"CastTransformation derive(batch_id = $BatchId) ~> DerivedColumnTransformation",
+				"SourceDelta filter(from == toDate($StartDate, 'yyyy-MM-dd') && to == toDate($EndDate, 'yyyy-MM-dd')) ~> FilterTransformation",
+				"FilterTransformation alterRow(deleteIf(true())) ~> AlterRowToDeleteRows",
+				"DerivedColumnTransformation alterRow(upsertIf(true())) ~> AlterRowToInsert",
+				"AlterRowToInsert sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: ($SinkFileSystem),",
+				"     folderPath: ($SinkDirectory),",
+				"     mergeSchema: true,",
+				"     autoCompact: true,",
+				"     optimizedWrite: true,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:($KeyColumns),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     saveOrder: 2) ~> InsertDeltaSink",
+				"AlterRowToDeleteRows sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: ($SinkFileSystem),",
+				"     folderPath: ($SinkDirectory),",
+				"     mergeSchema: false,",
+				"     autoCompact: true,",
+				"     optimizedWrite: true,",
+				"     vacuum: 0,",
+				"     deletable: true,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: false,",
+				"     keys:($KeyColumns),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     saveOrder: 1) ~> DeleteSinkDelta"
+			]
+		}
+	}
+}

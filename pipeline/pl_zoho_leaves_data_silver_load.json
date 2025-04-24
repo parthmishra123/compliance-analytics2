@@ -1,0 +1,198 @@
+{
+	"name": "pl_zoho_leaves_data_silver_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "LookupJson",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "ds_adls_gen2_json",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileSystem": {
+								"value": "@pipeline().parameters.LookupFileSystem",
+								"type": "Expression"
+							},
+							"Directory": {
+								"value": "@pipeline().parameters.LookupDirectory",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@pipeline().parameters.SourceFileName",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			},
+			{
+				"name": "data_flow_leave_data_silver_load",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "LookupJson",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_zoho_leaves_data_silver_load",
+						"type": "DataFlowReference",
+						"parameters": {
+							"InputString": {
+								"value": "'@{replace(replace(string(activity('LookupJson').output.firstRow), '''', ''), '\\', '')}'",
+								"type": "Expression"
+							},
+							"BatchId": {
+								"value": "'@{pipeline().TriggerTime}'",
+								"type": "Expression"
+							},
+							"SourceFileName": {
+								"value": "'@{pipeline().parameters.SourceFileName}'",
+								"type": "Expression"
+							},
+							"SinkFileSystem": {
+								"value": "'@{pipeline().parameters.SinkFileSystem}'",
+								"type": "Expression"
+							},
+							"SinkFolderPath": {
+								"value": "'@{pipeline().parameters.SinkFolderPath}'",
+								"type": "Expression"
+							},
+							"KeyColumns": {
+								"value": "@pipeline().parameters.KeyColumns",
+								"type": "Expression"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 16,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "execute_pl_archive_file",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "data_flow_leave_data_silver_load",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_archive_file",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"SourceFileSystem": {
+							"value": "@pipeline().parameters.LookupFileSystem",
+							"type": "Expression"
+						},
+						"SinkFileSystem": {
+							"value": "@pipeline().parameters.ArchiveSinkFileSystem",
+							"type": "Expression"
+						},
+						"SourceDirectory": {
+							"value": "@pipeline().parameters.LookupDirectory",
+							"type": "Expression"
+						},
+						"SinkDirectory": {
+							"value": "@pipeline().parameters.ArchiveSinkDirectory",
+							"type": "Expression"
+						},
+						"SourceFileName": {
+							"value": "@pipeline().parameters.SourceFileName",
+							"type": "Expression"
+						},
+						"SinkFileName": {
+							"value": "@pipeline().parameters.SourceFileName",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"LookupFileSystem": {
+				"type": "String",
+				"defaultValue": "bronze"
+			},
+			"LookupDirectory": {
+				"type": "String",
+				"defaultValue": "audax/zoho/leave_data"
+			},
+			"SourceFileName": {
+				"type": "String",
+				"defaultValue": "employee_leave_data_20240718123729.json"
+			},
+			"SinkFileSystem": {
+				"type": "String",
+				"defaultValue": "silver"
+			},
+			"SinkFolderPath": {
+				"type": "String",
+				"defaultValue": "audax/zoho/leave_data"
+			},
+			"KeyColumns": {
+				"type": "Array",
+				"defaultValue": [
+					"employee_id",
+					"date"
+				]
+			},
+			"ArchiveSinkFileSystem": {
+				"type": "String",
+				"defaultValue": "bronze"
+			},
+			"ArchiveSinkDirectory": {
+				"type": "String",
+				"defaultValue": "archive/audax/zoho/leave_data"
+			}
+		},
+		"folder": {
+			"name": "ResourceManagement/Zoho/Leaves"
+		},
+		"annotations": []
+	}
+}

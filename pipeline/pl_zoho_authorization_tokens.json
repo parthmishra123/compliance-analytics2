@@ -1,0 +1,142 @@
+{
+	"name": "pl_zoho_authorization_tokens",
+	"properties": {
+		"activities": [
+			{
+				"name": "web_client_id",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": "https://compliance-analytics.vault.azure.net/secrets/zoho-client-id/a1fb4b4543354a6fba545eb7844c6239?api-version=7.4",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "web_client_secret",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": "https://compliance-analytics.vault.azure.net/secrets/zoho-client-secret/c8688e1260c14de59c97cd9123f6c184?api-version=7.4",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "web_refresh_token",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": "https://compliance-analytics.vault.azure.net/secrets/zoho-refresh-token/669234db8e3447a7a088a44d2d3cd451?api-version=7.4",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "set_var_api_tokens",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "web_refresh_token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "web_client_secret",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "web_client_id",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pipelineReturnValue",
+					"value": [
+						{
+							"key": "ClientId",
+							"value": {
+								"type": "Expression",
+								"content": "@activity('web_client_id').output.value"
+							}
+						},
+						{
+							"key": "ClientSecret",
+							"value": {
+								"type": "Expression",
+								"content": "@activity('web_client_secret').output.value"
+							}
+						},
+						{
+							"key": "RefreshToken",
+							"value": {
+								"type": "Expression",
+								"content": "@activity('web_refresh_token').output.value"
+							}
+						}
+					],
+					"setSystemVariable": true
+				}
+			}
+		],
+		"folder": {
+			"name": "ResourceManagement/Zoho/Authorization"
+		},
+		"annotations": []
+	}
+}

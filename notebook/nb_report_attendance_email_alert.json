@@ -1,0 +1,200 @@
+{
+	"name": "nb_report_attendance_email_alert",
+	"properties": {
+		"folder": {
+			"name": "Resource Management/Report/Attendance"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "audaxsparkpool",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "be0a076f-cdd2-49b2-864c-701acd909ee4"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/69a89c4c-53f5-464f-b379-e208fddb5117/resourceGroups/Attendance_Management_System/providers/Microsoft.Synapse/workspaces/compliance-analytics-synapse-ws/bigDataPools/audaxsparkpool",
+				"name": "audaxsparkpool",
+				"type": "Spark",
+				"endpoint": "https://compliance-analytics-synapse-ws.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/audaxsparkpool",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.4",
+				"nodeCount": 10,
+				"cores": 8,
+				"memory": 56,
+				"automaticScaleJobs": false
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"tags": [
+						"parameters"
+					]
+				},
+				"source": [
+					"email_conn_string = 'endpoint=https://audax-resource-mgmt-communication-services.india.communication.azure.com/;accesskey=8hY8CVEqt8W9qshzXQ24rcwuZtqeD3DuW3qBOcNqCAuHl0qap+U+ISX+8B8Woxy6zGBPZK9bVYZFRGrFAZ9aqw=='\r\n",
+					"to_address = 'jatin.chauhan@audaxlabs.com'\r\n",
+					"cc_address = 'jatin.chauhan@audaxlabs.com'\r\n",
+					"sender_address = 'DoNotReply@34a80a5b-19cd-4683-81e0-fddeda5ec562.azurecomm.net'\r\n",
+					"subject = 'Non-Compliance with the Roaster Policy'\r\n",
+					"template_path = 'abfss://audaxresourcemgmtfs@audaxresourcemgmtsa.dfs.core.windows.net/synapse/workspaces/email_templates/attendace_short_email_alert.txt'\r\n",
+					"is_high_importance = True\r\n",
+					"employee_name = 'Jatin Chauhan'\r\n",
+					"manager_email_id = 'jatin.chauhan@audaxlabs.com'\r\n",
+					"employee_id = 'AL0150'\r\n",
+					"expected_days = '3'\r\n",
+					"expected_hours = '24'\r\n",
+					"start_date = '2024-03-24'\r\n",
+					"end_date = '2024-03-30'\r\n",
+					"actual_days = '2.5'\r\n",
+					"office_days = '1'\r\n",
+					"leaves_days = '0.5'\r\n",
+					"holidays_days = '1'\r\n",
+					"actual_hours = '20'\r\n",
+					"office_hours = '8'\r\n",
+					"leaves_hours = '4'\r\n",
+					"holidays_hours = '8'"
+				],
+				"execution_count": 1
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from jinja2 import Template\r\n",
+					"from azure.communication.email import EmailClient\r\n",
+					"import time"
+				],
+				"execution_count": 2
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"try:\r\n",
+					"    df = spark.sparkContext.textFile(template_path)\r\n",
+					"    all_text = df.collect()    \r\n",
+					"    template = \"\\n\".join(all_text)\r\n",
+					"except Exception as e:\r\n",
+					"    raise(e)"
+				],
+				"execution_count": 3
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"def main():\r\n",
+					"    try:\r\n",
+					"        # create a Jinja2 template object\r\n",
+					"        jinja_template = Template(template)\r\n",
+					"\r\n",
+					"        # render the template with dynamic values\r\n",
+					"        rendered_template  = jinja_template.render(employee_name=employee_name, employee_id=employee_id, start_date=start_date, end_date=end_date,\r\n",
+					"            expected_days = expected_days,\r\n",
+					"            actual_days = actual_days,\r\n",
+					"            office_days = office_days,\r\n",
+					"            leaves_days = leaves_days,\r\n",
+					"            holidays_days = holidays_days,\r\n",
+					"            actual_hours = actual_hours,\r\n",
+					"            office_hours = office_hours,\r\n",
+					"            leaves_hours = leaves_hours,\r\n",
+					"            holidays_hours = holidays_hours,\r\n",
+					"            expected_hours = expected_hours\r\n",
+					"        )\r\n",
+					"\r\n",
+					"        client = EmailClient.from_connection_string(email_conn_string)\r\n",
+					"\r\n",
+					"        addresses = to_address.split(',')\r\n",
+					"        receivers = [{\"address\": address} for address in addresses]\r\n",
+					"\r\n",
+					"        # cc_addresses = cc_address.split(',')\r\n",
+					"        # cc_receivers = [{\"address\": address} for address in cc_addresses]\r\n",
+					"        # cc_receivers.append({\"address\": manager_email_id})\r\n",
+					"\r\n",
+					"        message = {\r\n",
+					"            \"senderAddress\": sender_address,\r\n",
+					"            \"recipients\":  {\r\n",
+					"                \"to\": receivers,\r\n",
+					"                # \"cc\": cc_receivers\r\n",
+					"            },\r\n",
+					"            \"content\": {\r\n",
+					"                \"subject\": subject,\r\n",
+					"                \"html\": rendered_template,\r\n",
+					"            }\r\n",
+					"        }\r\n",
+					"\r\n",
+					"        if is_high_importance:\r\n",
+					"            message[\"headers\"] = {\"x-priority\": 1}\r\n",
+					"\r\n",
+					"        poller = client.begin_send(message)\r\n",
+					"        time.sleep(10)\r\n",
+					"        result = poller.result()\r\n",
+					"\r\n",
+					"    except Exception as ex:\r\n",
+					"        raise(ex)\r\n",
+					"\r\n",
+					"main()"
+				],
+				"execution_count": 4
+			}
+		]
+	}
+}

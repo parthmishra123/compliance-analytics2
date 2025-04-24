@@ -1,0 +1,273 @@
+{
+	"name": "pl_report_missing_timesheet_email_to_manager",
+	"properties": {
+		"activities": [
+			{
+				"name": "lkp_distinct_managers",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": "SELECT DISTINCT reporting_to, reporting_to_email_id\nFROM [dbo].[employee]\nWHERE ISNULL(reporting_to, '') != '' or ISNULL(reporting_to_email_id, '') != ''",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_synapse_serverless_sql",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "foreach_iterate_managers",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lkp_distinct_managers",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "web_invoke_email_service_conn_string",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lkp_distinct_managers').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "lkp_missing_timesheets_employees_count",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "@CONCAT('SELECT COUNT(*) as total_employees, reporting_to_email_id from missing_timesheets mt LEFT JOIN employee e on e.employee_id = mt.employee_id where reporting_to_email_id = ''', item().reporting_to_email_id, ''' and [from] = ''', pipeline().parameters.from, ''' and [to] = ''', pipeline().parameters.to, ''' and (ISNULL(reporting_to, '''') != '''' or ISNULL(reporting_to_email_id, '''') != '''') GROUP BY reporting_to_email_id')",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_synapse_serverless_sql",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "if_evaluate_manager_team_memeber_atleast_one",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "lkp_missing_timesheets_employees_count",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@greater(activity('lkp_missing_timesheets_employees_count').output.count, 0)",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "lkp_email_content",
+										"type": "Lookup",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "SqlServerSource",
+												"sqlReaderQuery": {
+													"value": "@CONCAT('DECLARE @email_content varchar(max); \nSELECT @email_content = STRING_AGG(CAST(\n''<tr>''+\n''<td>''+mt.employee_id+''</td>''+\n''<td>''+concat(mt.first_name, '' '', mt.last_name)+''</td>''+\n''<td>''+mt.email_id+''</td>''+\n''<td>''+ CAST(mt.expected_hours as varchar) +''</td>''+\n''<td>''+ CAST(mt.submitted_hours as varchar) +''</td>''+\n''<td>''+ CAST(mt.leaves_hours as varchar) +''</td>''+\n''<td>''+ CAST(mt.holidays_hours as varchar) +''</td>''+\n''<td>''+ CAST(mt.total_hours as varchar) +''</td>''+\n''</tr>'' AS nvarchar(max)), '''') WITHIN GROUP (ORDER BY mt.employee_id) from missing_timesheets mt LEFT JOIN employee e on e.employee_id = mt.employee_id where reporting_to_email_id = ''', activity('lkp_missing_timesheets_employees_count').output.value[0].reporting_to_email_id, ''' and [from] = ''', pipeline().parameters.from, ''' and [to] = ''', pipeline().parameters.to, ''' and (ISNULL(reporting_to, '''') != '''' or ISNULL(reporting_to_email_id, '''') != '''');\nselect ''<table><tr><th>Employee Id</th><th>Name</th><th>Email Id</th><th>Expected Hours</th><th>Submitted Hours</th><th>Leaves Hours</th><th>Holidays Hours</th><th>Total Hours</th></tr>''+@email_content + ''</table>''  as [message];')",
+													"type": "Expression"
+												},
+												"queryTimeout": "02:00:00",
+												"partitionOption": "None"
+											},
+											"dataset": {
+												"referenceName": "ds_synapse_serverless_sql",
+												"type": "DatasetReference"
+											}
+										}
+									},
+									{
+										"name": "execute_nb_report_missing_timesheet_alert_to_manager",
+										"type": "SynapseNotebook",
+										"dependsOn": [
+											{
+												"activity": "lkp_email_content",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"notebook": {
+												"referenceName": "nb_report_zoho_missing_timesheet_email_alert_to_manager",
+												"type": "NotebookReference"
+											},
+											"parameters": {
+												"email_conn_string": {
+													"value": {
+														"value": "@activity('web_invoke_email_service_conn_string').output.value",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"email_content": {
+													"value": {
+														"value": "@activity('lkp_email_content').output.firstRow.message",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"to_address": {
+													"value": {
+														"value": "@item().reporting_to_email_id",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"sender_address": {
+													"value": "DoNotReply@608259ab-4246-4d97-838c-89523d027f8b.azurecomm.net",
+													"type": "string"
+												},
+												"subject": {
+													"value": {
+														"value": "@CONCAT('Team Members''s Missing Timesheets for Week ', pipeline().parameters.from, ' - ', pipeline().parameters.to)",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"template_path": {
+													"value": "abfss://complianceanalyticsfs@complianceanalyticssa.dfs.core.windows.net/synapse/workspaces/email_templates/missing_timesheet_email_to_manager_alert.txt",
+													"type": "string"
+												},
+												"is_high_importance": {
+													"value": true,
+													"type": "bool"
+												},
+												"manager_name": {
+													"value": {
+														"value": "@item().reporting_to",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"start_date": {
+													"value": {
+														"value": "@pipeline().parameters.from",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"end_date": {
+													"value": {
+														"value": "@pipeline().parameters.to",
+														"type": "Expression"
+													},
+													"type": "string"
+												}
+											},
+											"snapshot": true,
+											"conf": {
+												"spark.dynamicAllocation.enabled": null,
+												"spark.dynamicAllocation.minExecutors": null,
+												"spark.dynamicAllocation.maxExecutors": null
+											},
+											"numExecutors": null
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "web_invoke_email_service_conn_string",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": "https://compliance-analytics.vault.azure.net/secrets/email-service-conn-string/e15b92af79324fe2b6e58d4b0870f087?api-version=7.4",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"from": {
+				"type": "string",
+				"defaultValue": "2024-05-05"
+			},
+			"to": {
+				"type": "string",
+				"defaultValue": "2024-05-11"
+			}
+		},
+		"folder": {
+			"name": "ResourceManagement/Report/Zoho/Timesheet"
+		},
+		"annotations": []
+	}
+}

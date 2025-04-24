@@ -1,0 +1,151 @@
+{
+	"name": "pl_zoho_leaves_data_silver_load_old",
+	"properties": {
+		"activities": [
+			{
+				"name": "data_flow_employee_leave_data_silver_load",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_employee_leave_data_silver_load",
+						"type": "DataFlowReference",
+						"parameters": {
+							"FileName": {
+								"value": "'@{pipeline().parameters.SourceFileName}'",
+								"type": "Expression"
+							},
+							"BatchId": {
+								"value": "'@{pipeline().TriggerTime}'",
+								"type": "Expression"
+							},
+							"SinkFileSystem": {
+								"value": "'@{pipeline().parameters.SinkFileSystem}'",
+								"type": "Expression"
+							},
+							"SinkFolderPath": {
+								"value": "'@{pipeline().parameters.SinkFolderPath}'",
+								"type": "Expression"
+							},
+							"KeyColumns": {
+								"value": "@pipeline().parameters.KeyColumns",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"SourceJson": {
+								"FileSystem": {
+									"value": "@pipeline().parameters.SourceFileSystem",
+									"type": "Expression"
+								},
+								"Directory": {
+									"value": "@pipeline().parameters.SourceDirectory",
+									"type": "Expression"
+								},
+								"FileName": {
+									"value": "@pipeline().parameters.SourceFileName",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 16,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "execute_pipeline_archive_file",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "data_flow_employee_leave_data_silver_load",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_archive_file",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"SourceFileSystem": {
+							"value": "@pipeline().parameters.SourceFileSystem",
+							"type": "Expression"
+						},
+						"SinkFileSystem": {
+							"value": "@pipeline().parameters.SourceFileSystem",
+							"type": "Expression"
+						},
+						"SourceDirectory": {
+							"value": "@pipeline().parameters.SourceDirectory",
+							"type": "Expression"
+						},
+						"SinkDirectory": {
+							"value": "@pipeline().parameters.ArchiveDirectory",
+							"type": "Expression"
+						},
+						"SourceFileName": {
+							"value": "@pipeline().parameters.SourceFileName",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SourceFileSystem": {
+				"type": "string",
+				"defaultValue": "bronze"
+			},
+			"SourceDirectory": {
+				"type": "string",
+				"defaultValue": "audax/zoho/leave_data"
+			},
+			"SourceFileName": {
+				"type": "string"
+			},
+			"SinkFolderPath": {
+				"type": "string",
+				"defaultValue": "audax/zoho/leave_data"
+			},
+			"SinkFileSystem": {
+				"type": "string",
+				"defaultValue": "silver"
+			},
+			"ArchiveDirectory": {
+				"type": "string",
+				"defaultValue": "archive/audax/zoho/leave_data"
+			},
+			"KeyColumns": {
+				"type": "array",
+				"defaultValue": [
+					"employee_id",
+					"from",
+					"to"
+				]
+			}
+		},
+		"folder": {
+			"name": "ResourceManagement/Zoho/Leaves"
+		},
+		"annotations": []
+	}
+}

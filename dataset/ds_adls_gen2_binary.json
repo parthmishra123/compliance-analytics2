@@ -1,0 +1,40 @@
+{
+	"name": "ds_adls_gen2_binary",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"FileSystem": {
+				"type": "string"
+			},
+			"Directory": {
+				"type": "string"
+			},
+			"FileName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().FileName",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().Directory",
+					"type": "Expression"
+				},
+				"fileSystem": {
+					"value": "@dataset().FileSystem",
+					"type": "Expression"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

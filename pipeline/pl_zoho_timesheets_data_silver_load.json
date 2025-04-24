@@ -1,0 +1,287 @@
+{
+	"name": "pl_zoho_timesheets_data_silver_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "execute_pipeline_generate_access_token",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_zoho_authorization_access_token",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "lookup_access_token_zoho",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "execute_pipeline_generate_access_token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "ds_adls_gen2_delimited",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileSystem": {
+								"value": "@pipeline().parameters.LookupFileSystem",
+								"type": "Expression"
+							},
+							"Directory": {
+								"value": "@pipeline().parameters.LookupDirectory",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@pipeline().parameters.LookupFileName",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			},
+			{
+				"name": "lookup_last_loaded_dt",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "execute_pipeline_generate_access_token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('select last_loaded_dt from [dbo].[water_mark]  where source = ''',pipeline().parameters.water_mark_tbl_source, ''' and object = ''', pipeline().parameters.water_mark_tbl_object,  '''')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_azure_sql_resource_mgmt_database",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "data_flow_get_time_sheets",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "lookup_access_token_zoho",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "lookup_last_loaded_dt",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_zoho_api_get_timesheets",
+						"type": "DataFlowReference",
+						"parameters": {
+							"ZohoAccessToken": {
+								"value": "'@{activity('lookup_access_token_zoho').output.firstRow.access_token}'",
+								"type": "Expression"
+							},
+							"FromDate": {
+								"value": "'@{formatDateTime(activity('lookup_last_loaded_dt').output.firstRow.last_loaded_dt,'dd-MMM-yyyy')}'",
+								"type": "Expression"
+							},
+							"ToDate": {
+								"value": "'@{formatDateTime(pipeline().TriggerTime,'dd-MMM-yyyy')}'",
+								"type": "Expression"
+							},
+							"SinkFolderPath": {
+								"value": "'@{pipeline().parameters.SinkFolderPath}'",
+								"type": "Expression"
+							},
+							"SinkFileSystem": {
+								"value": "'@{pipeline().parameters.SinkFileSystem}'",
+								"type": "Expression"
+							},
+							"BatchId": {
+								"value": "'@{pipeline().TriggerTime}'",
+								"type": "Expression"
+							},
+							"KeyColumns": {
+								"value": "@pipeline().parameters.KeyColumns",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"SourceZohoApi": {
+								"BaseUrl": {
+									"value": "@pipeline().parameters.BaseUrl",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 16,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "stored_procedure_update_water_mark_table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "data_flow_get_time_sheets",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[update_water_mark_table]",
+					"storedProcedureParameters": {
+						"last_loaded_dt": {
+							"value": {
+								"value": "@formatDateTime(pipeline().TriggerTime,'dd-MMM-yyyy')",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"last_loaded_dt_epoch": {
+							"value": null,
+							"type": "Int64"
+						},
+						"object": {
+							"value": {
+								"value": "@pipeline().parameters.water_mark_tbl_object",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"source": {
+							"value": {
+								"value": "@pipeline().parameters.water_mark_tbl_source",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_azure_sql_resource_mgmt_database",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"LookupFileSystem": {
+				"type": "string",
+				"defaultValue": "bronze"
+			},
+			"LookupDirectory": {
+				"type": "string",
+				"defaultValue": "audax/zoho/access_token"
+			},
+			"LookupFileName": {
+				"type": "string",
+				"defaultValue": "zoho_api_access_token.csv"
+			},
+			"BaseUrl": {
+				"type": "string",
+				"defaultValue": "https://people.zoho.in/people/api/timetracker/gettimesheet"
+			},
+			"SinkFolderPath": {
+				"type": "string",
+				"defaultValue": "audax/zoho/employee_timesheets"
+			},
+			"SinkFileSystem": {
+				"type": "string",
+				"defaultValue": "silver"
+			},
+			"water_mark_tbl_source": {
+				"type": "string",
+				"defaultValue": "zoho"
+			},
+			"water_mark_tbl_object": {
+				"type": "string",
+				"defaultValue": "timesheets"
+			},
+			"KeyColumns": {
+				"type": "Array",
+				"defaultValue": [
+					"employee_id",
+					"employee_email",
+					"erec_no",
+					"from_date",
+					"to_date",
+					"record_id"
+				]
+			}
+		},
+		"folder": {
+			"name": "ResourceManagement/Zoho/Timesheet"
+		},
+		"annotations": []
+	}
+}

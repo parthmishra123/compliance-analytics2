@@ -1,0 +1,116 @@
+{
+	"name": "pl_zoho_authorization_access_token",
+	"properties": {
+		"activities": [
+			{
+				"name": "execute_pl_zoho_authorization_tokens",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_zoho_authorization_tokens",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "data_flow_generate_access_token",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "execute_pl_zoho_authorization_tokens",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_generate_access_token",
+						"type": "DataFlowReference",
+						"parameters": {
+							"ClientId": {
+								"value": "'@{activity('execute_pl_zoho_authorization_tokens').output.pipelineReturnValue.ClientId}'",
+								"type": "Expression"
+							},
+							"ClientSecret": {
+								"value": "'@{activity('execute_pl_zoho_authorization_tokens').output.pipelineReturnValue.ClientSecret}'",
+								"type": "Expression"
+							},
+							"RefreshToken": {
+								"value": "'@{activity('execute_pl_zoho_authorization_tokens').output.pipelineReturnValue.RefreshToken}'",
+								"type": "Expression"
+							},
+							"SinkFileName": {
+								"value": "'@{pipeline().parameters.SinkFileName}'",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"SourceRest": {
+								"BaseUrl": {
+									"value": "@pipeline().parameters.BaseUrl",
+									"type": "Expression"
+								}
+							},
+							"SinkDelimited": {
+								"FileSystem": {
+									"value": "@pipeline().parameters.SinkFileSystem",
+									"type": "Expression"
+								},
+								"Directory": {
+									"value": "@pipeline().parameters.SinkDirectory",
+									"type": "Expression"
+								},
+								"FileName": {
+									"value": "@pipeline().parameters.SinkFileName",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"parameters": {
+			"BaseUrl": {
+				"type": "String",
+				"defaultValue": "https://accounts.zoho.in/oauth/v2/token"
+			},
+			"SinkFileSystem": {
+				"type": "String",
+				"defaultValue": "bronze"
+			},
+			"SinkDirectory": {
+				"type": "String",
+				"defaultValue": "audax/zoho/access_token"
+			},
+			"SinkFileName": {
+				"type": "String",
+				"defaultValue": "zoho_api_access_token.csv"
+			}
+		},
+		"folder": {
+			"name": "ResourceManagement/Zoho/Authorization"
+		},
+		"annotations": []
+	}
+}

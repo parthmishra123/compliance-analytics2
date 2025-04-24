@@ -1,0 +1,126 @@
+{
+	"name": "pl_report_zoho_missing_timesheet_alert",
+	"properties": {
+		"activities": [
+			{
+				"name": "set_var_from",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "from",
+					"value": {
+						"value": "@formatDateTime(\n    subtractFromTime(\n        utcNow(),\n        add(dayOfWeek(utcNow()),7),\n        'Day'\n    ),\n    'yyyy-MM-dd'\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "set_var_to",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "set_var_from",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "to",
+					"value": {
+						"value": "@formatDateTime(\n    addDays(\n        subtractFromTime(\n            utcNow(),\n            dayOfWeek(utcNow()),\n            'Day'\n        ),\n    -1),\n    'yyyy-MM-dd'\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "execute_pl_report_zoho_timesheet_email_alert",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "set_var_to",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_report_zoho_timesheet_email_alert",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"StartDate": {
+							"value": "@variables('from')",
+							"type": "Expression"
+						},
+						"EndDate": {
+							"value": "@variables('to')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "execute_pl_report_missing_timesheet_email_to_manager",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "set_var_to",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_report_missing_timesheet_email_to_manager",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"from": {
+							"value": "@variables('from')",
+							"type": "Expression"
+						},
+						"to": {
+							"value": "@variables('to')",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"variables": {
+			"from": {
+				"type": "String"
+			},
+			"to": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "ResourceManagement/Report"
+		},
+		"annotations": []
+	}
+}

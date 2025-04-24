@@ -1,0 +1,169 @@
+{
+	"name": "df_usp_missing_timesheet_to_delta_table",
+	"properties": {
+		"folder": {
+			"name": "Zoho/Timesheet"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_synapse_serverless_sql",
+						"type": "DatasetReference"
+					},
+					"name": "SourceSynapseServerlessSql"
+				},
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "SourceDelta"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "SinkDelta"
+				},
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "WriteToDelta"
+				}
+			],
+			"transformations": [
+				{
+					"name": "CastTransformation"
+				},
+				{
+					"name": "DerivedColumnTransformation"
+				},
+				{
+					"name": "FilterTransformation"
+				},
+				{
+					"name": "AlterRowTransformation"
+				},
+				{
+					"name": "AlterRow"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     SinkFileSystem as string ('gold'),",
+				"     SinkDirectory as string ('audax/zoho/missing_timesheets'),",
+				"     KeyColumns as string[] (['employee_id','email_id','from','to','week_no']),",
+				"     From as string,",
+				"     To as string,",
+				"     BatchId as string",
+				"}",
+				"source(output(",
+				"          employee_id as string,",
+				"          first_name as string,",
+				"          last_name as string,",
+				"          email_id as string,",
+				"          submitted_hours as double,",
+				"          no_of_leaves as integer,",
+				"          no_of_holidays as integer,",
+				"          expected_hours as integer,",
+				"          holidays_hours as decimal(13,1),",
+				"          leaves_hours as decimal(13,1),",
+				"          total_hours as double,",
+				"          from as date,",
+				"          to as date,",
+				"          week_no as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     inputs:['@start_date' -> ($From),'@end_date' -> ($To)],",
+				"     procedureName: 'usp_weekly_missing_timesheet_snapshot',",
+				"     schemaName: 'dbo',",
+				"     resultSet: true,",
+				"     format: 'procedure') ~> SourceSynapseServerlessSql",
+				"source(output(",
+				"          employee_id as string,",
+				"          first_name as string,",
+				"          last_name as string,",
+				"          email_id as string,",
+				"          submitted_hours as double,",
+				"          no_of_leaves as double,",
+				"          no_of_holidays as double,",
+				"          holidays_hours as double,",
+				"          leaves_hours as double,",
+				"          total_hours as double,",
+				"          from as date,",
+				"          to as date,",
+				"          week_no as integer,",
+				"          expected_hours as double,",
+				"          batch_id as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'gold',",
+				"     folderPath: 'audax/zoho/missing_timesheets') ~> SourceDelta",
+				"DerivedColumnTransformation cast(output(",
+				"          no_of_leaves as double,",
+				"          no_of_holidays as double,",
+				"          expected_hours as double,",
+				"          holidays_hours as double,",
+				"          leaves_hours as double",
+				"     ),",
+				"     errors: false) ~> CastTransformation",
+				"SourceSynapseServerlessSql derive(batch_id = $BatchId) ~> DerivedColumnTransformation",
+				"SourceDelta filter(from == toDate($From, 'yyyy-MM-dd') && to == toDate($To, 'yyyy-MM-dd')) ~> FilterTransformation",
+				"FilterTransformation alterRow(deleteIf(true())) ~> AlterRowTransformation",
+				"CastTransformation alterRow(upsertIf(true())) ~> AlterRow",
+				"AlterRow sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: ($SinkFileSystem),",
+				"     folderPath: ($SinkDirectory),",
+				"     mergeSchema: true,",
+				"     autoCompact: true,",
+				"     optimizedWrite: true,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:($KeyColumns),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     saveOrder: 2) ~> SinkDelta",
+				"AlterRowTransformation sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: ($SinkFileSystem),",
+				"     folderPath: ($SinkDirectory),",
+				"     mergeSchema: false,",
+				"     autoCompact: true,",
+				"     optimizedWrite: true,",
+				"     vacuum: 0,",
+				"     deletable: true,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: false,",
+				"     keys:($KeyColumns),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     saveOrder: 1) ~> WriteToDelta"
+			]
+		}
+	}
+}

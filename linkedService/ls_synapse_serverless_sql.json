@@ -1,0 +1,21 @@
+{
+	"name": "ls_synapse_serverless_sql",
+	"properties": {
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_akv_service",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "synapse-serverless-sql-conn-string"
+			}
+		},
+		"connectVia": {
+			"referenceName": "AutoResolveIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

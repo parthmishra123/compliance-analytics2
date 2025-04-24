@@ -1,0 +1,21 @@
+{
+	"name": "ls_azure_sql_resource_mgmt_database",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_akv_service",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "resource-mgmt-sql-server-conn-str"
+			}
+		},
+		"connectVia": {
+			"referenceName": "AutoResolveIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

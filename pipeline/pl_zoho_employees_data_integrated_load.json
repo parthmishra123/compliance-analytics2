@@ -1,0 +1,507 @@
+{
+	"name": "pl_zoho_employees_data_integrated_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "execute_pl_generate_access_token",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_zoho_authorization_access_token",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "lookup_zoho_api_access_token",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "execute_pl_generate_access_token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "ds_adls_gen2_delimited",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileSystem": {
+								"value": "@pipeline().parameters.SinkFileSystem",
+								"type": "Expression"
+							},
+							"Directory": {
+								"value": "@pipeline().parameters.LookupDirectory",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@pipeline().parameters.LookupFileName",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			},
+			{
+				"name": "lkp_watermark_value",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "execute_pl_generate_access_token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('SELECT last_loaded_dt_epoch, cdc_attribute FROM water_mark WHERE source = ''', pipeline().parameters.Source, ''' and object = ''', pipeline().parameters.Object, '''')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_azure_sql_resource_mgmt_database",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "lkp_convert_trigger_time_to_epoch",
+				"description": "",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "execute_pl_generate_access_token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('SELECT DATEDIFF_BIG(MILLISECOND,''1970-01-01 00:00:00.000'',''', pipeline().TriggerTime,''') as epoch_time')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_azure_sql_resource_mgmt_database",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "until_wait_status_true",
+				"type": "Until",
+				"dependsOn": [
+					{
+						"activity": "lookup_zoho_api_access_token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "lkp_watermark_value",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "lkp_convert_trigger_time_to_epoch",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('Status'), true)",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "df_execute_df_zoho_employees_data_bronze_load",
+							"type": "ExecuteDataFlow",
+							"dependsOn": [
+								{
+									"activity": "set_var_file_name",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataflow": {
+									"referenceName": "df_zoho_employees_data_bronze_load",
+									"type": "DataFlowReference",
+									"parameters": {
+										"AuthToken": {
+											"value": "'@{activity('lookup_zoho_api_access_token').output.firstRow.access_token}'",
+											"type": "Expression"
+										},
+										"CDCAttribute": {
+											"value": "'@{activity('lkp_watermark_value').output.firstRow.cdc_attribute}'",
+											"type": "Expression"
+										},
+										"CDCAttributeValue": {
+											"value": "'@{string(activity('lkp_watermark_value').output.firstRow.last_loaded_dt_epoch)}'",
+											"type": "Expression"
+										},
+										"StartingIndex": {
+											"value": "@variables('Index')",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "'@{variables('FileName')}'",
+											"type": "Expression"
+										}
+									},
+									"datasetParameters": {
+										"RestSource": {
+											"BaseUrl": "https://people.zoho.in/people/api/forms/employee/getRecords"
+										},
+										"JsonSink": {
+											"FileSystem": {
+												"value": "@pipeline().parameters.SinkFileSystem",
+												"type": "Expression"
+											},
+											"Directory": {
+												"value": "@pipeline().parameters.SinkDirectory",
+												"type": "Expression"
+											},
+											"FileName": {
+												"value": "@variables('FileName')",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"compute": {
+									"coreCount": 16,
+									"computeType": "General"
+								},
+								"traceLevel": "None",
+								"cacheSinks": {
+									"firstRowOnly": true
+								}
+							}
+						},
+						{
+							"name": "set_var_file_name",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "set_var_multiplier",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "FileName",
+								"value": {
+									"value": "@concat('employee_data_', formatDateTime(utcnow(), 'yyyyMMddHHmmss'), '.json')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "update_var_status",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "df_execute_df_zoho_employees_data_bronze_load",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Status",
+								"value": {
+									"value": "@activity('df_execute_df_zoho_employees_data_bronze_load').output.runStatus.output.CacheSink.value[0].status",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "execute_pl_zoho_employees_data_silver_load",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "update_var_status",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_zoho_employees_data_silver_load",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SourceFileName": {
+										"value": "@variables('FileName')",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "update_var_index",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "update_var_counter",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Index",
+								"value": {
+									"value": "@add(mul(variables('Multiplier'), 200), 1)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "update_var_counter",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "execute_pl_zoho_employees_data_silver_load",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Counter",
+								"value": {
+									"value": "@add(variables('Multiplier'), 1)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "set_var_multiplier",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Multiplier",
+								"value": {
+									"value": "@variables('Counter')",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"timeout": "0.12:00:00"
+				}
+			},
+			{
+				"name": "sp_execute_update_water_mark_table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "until_wait_status_true",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[update_water_mark_table]",
+					"storedProcedureParameters": {
+						"last_loaded_dt": {
+							"value": {
+								"value": "@pipeline().TriggerTime",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"last_loaded_dt_epoch": {
+							"value": {
+								"value": "@activity('lkp_convert_trigger_time_to_epoch').output.firstRow.epoch_time",
+								"type": "Expression"
+							},
+							"type": "Int64"
+						},
+						"object": {
+							"value": {
+								"value": "@pipeline().parameters.Object",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"source": {
+							"value": {
+								"value": "@pipeline().parameters.Source",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_azure_sql_resource_mgmt_database",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"SinkFileSystem": {
+				"type": "string",
+				"defaultValue": "bronze"
+			},
+			"SinkDirectory": {
+				"type": "string",
+				"defaultValue": "audax/zoho/employee_data/all_employees"
+			},
+			"LookupDirectory": {
+				"type": "string",
+				"defaultValue": "audax/zoho/access_token"
+			},
+			"LookupFileName": {
+				"type": "string",
+				"defaultValue": "zoho_api_access_token.csv"
+			},
+			"StartingIndex": {
+				"type": "int",
+				"defaultValue": 1
+			},
+			"Source": {
+				"type": "string",
+				"defaultValue": "zoho"
+			},
+			"Object": {
+				"type": "string",
+				"defaultValue": "employees"
+			}
+		},
+		"variables": {
+			"Status": {
+				"type": "Boolean",
+				"defaultValue": false
+			},
+			"FileName": {
+				"type": "String"
+			},
+			"Index": {
+				"type": "Integer",
+				"defaultValue": 1
+			},
+			"Counter": {
+				"type": "Integer",
+				"defaultValue": 1
+			},
+			"Multiplier": {
+				"type": "Integer"
+			}
+		},
+		"folder": {
+			"name": "ResourceManagement/Zoho/Employee"
+		},
+		"annotations": []
+	}
+}

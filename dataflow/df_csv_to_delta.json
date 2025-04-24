@@ -1,0 +1,121 @@
+{
+	"name": "df_csv_to_delta",
+	"properties": {
+		"folder": {
+			"name": "ResourceManagement"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_adls_gen2_delimited",
+						"type": "DatasetReference"
+					},
+					"name": "CsvSource"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "DeltaSink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "SelectTransformation"
+				},
+				{
+					"name": "AlterRowTransfomation"
+				},
+				{
+					"name": "DerivedColumnTransformation"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     FileName as string,",
+				"     BatchId as string,",
+				"     SinkFileSystem as string,",
+				"     SinkDirectory as string,",
+				"     KeyColumns as string[]",
+				"}",
+				"source(output(",
+				"          Date as date 'MM-dd-yyyy',",
+				"          { Employee Code } as string,",
+				"          {Employee Name} as string,",
+				"          {Company } as string,",
+				"          Department as string,",
+				"          {Category } as string,",
+				"          Designation as string,",
+				"          Grade as string,",
+				"          Team as string,",
+				"          Shift as string,",
+				"          { In Time } as string,",
+				"          {Out Time } as string,",
+				"          { Duration } as string,",
+				"          {Late By } as string,",
+				"          {Early By } as string,",
+				"          {Status } as string,",
+				"          {Punch Records } as string,",
+				"          Overtime as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> CsvSource",
+				"DerivedColumnTransformation select(mapColumn(",
+				"          date = Date,",
+				"          employee_code = { Employee Code },",
+				"          employee_name = {Employee Name},",
+				"          company = {Company },",
+				"          department = Department,",
+				"          category = {Category },",
+				"          designation = Designation,",
+				"          grade = Grade,",
+				"          team = Team,",
+				"          shift = Shift,",
+				"          in_time = { In Time },",
+				"          out_time = {Out Time },",
+				"          duration = { Duration },",
+				"          late_by = {Late By },",
+				"          early_by = {Early By },",
+				"          status,",
+				"          punch_records = {Punch Records },",
+				"          total_office_in_time,",
+				"          overtime = Overtime,",
+				"          file_name,",
+				"          batch_id",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectTransformation",
+				"SelectTransformation alterRow(upsertIf(true())) ~> AlterRowTransfomation",
+				"CsvSource derive(total_office_in_time = (toInteger(split({Out Time },\":\")[1])*60+toInteger(split({Out Time },\":\")[2]))-(toInteger(split({ In Time },\":\")[1])*60+toInteger(split({ In Time }, \":\")[2])),",
+				"          file_name = $FileName,",
+				"          batch_id = $BatchId,",
+				"          status = trim({Status })) ~> DerivedColumnTransformation",
+				"AlterRowTransfomation sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: ($SinkFileSystem),",
+				"     folderPath: ($SinkDirectory),",
+				"     mergeSchema: true,",
+				"     autoCompact: true,",
+				"     optimizedWrite: true,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:($KeyColumns),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> DeltaSink"
+			]
+		}
+	}
+}

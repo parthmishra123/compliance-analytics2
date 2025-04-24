@@ -1,0 +1,93 @@
+{
+	"name": "df_zoho_api_get_holidays",
+	"properties": {
+		"folder": {
+			"name": "Zoho/Holidays"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_rest_api",
+						"type": "DatasetReference"
+					},
+					"name": "SourceRestApi"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "SinkDelta"
+				}
+			],
+			"transformations": [
+				{
+					"name": "FlattenHolidays"
+				},
+				{
+					"name": "CastTransformation"
+				},
+				{
+					"name": "derivedColumnWeekOfyear"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     ZohoAccessToken as string,",
+				"     SinkFileSystem as string,",
+				"     SinkFolderPath as string",
+				"}",
+				"source(output(",
+				"          body as (data as (Date as string, Id as long, LocationId as string, LocationName as string, Name as string, Remarks as string, Session as boolean, ShiftId as string, ShiftName as string, isHalfday as boolean, isRestrictedHoliday as boolean)[], message as string, status as boolean, uri as string),",
+				"          headers as [string,string]",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     httpMethod: 'GET',",
+				"     timeout: 30,",
+				"     requestInterval: 0,",
+				"     headers: ['Authorization' -> (concat('Zoho-oauthtoken ',$ZohoAccessToken))],",
+				"     paginationRules: ['supportRFC5988' -> 'true'],",
+				"     responseFormat: ['type' -> 'json', 'documentForm' -> 'documentPerLine']) ~> SourceRestApi",
+				"SourceRestApi foldDown(unroll(body.data, body.data),",
+				"     mapColumn(",
+				"          date = body.data.Date,",
+				"          name = body.data.Name,",
+				"          id = body.data.Id,",
+				"          location_name = body.data.LocationName,",
+				"          location_id = body.data.LocationId",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> FlattenHolidays",
+				"FlattenHolidays cast(output(",
+				"          date as date 'dd-MMM-yyyy'",
+				"     ),",
+				"     errors: true) ~> CastTransformation",
+				"CastTransformation derive(week_of_year = weekOfYear(date)) ~> derivedColumnWeekOfyear",
+				"derivedColumnWeekOfyear sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: ($SinkFileSystem),",
+				"     folderPath: ($SinkFolderPath),",
+				"     overwrite: true,",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     upsertable: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SinkDelta"
+			]
+		}
+	}
+}

@@ -1,0 +1,12 @@
+{
+	"name": "ds_azure_sql_resource_mgmt_database",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azure_sql_resource_mgmt_database",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": []
+	}
+}

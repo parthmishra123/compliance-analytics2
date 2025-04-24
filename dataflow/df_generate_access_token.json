@@ -1,0 +1,69 @@
+{
+	"name": "df_generate_access_token",
+	"properties": {
+		"folder": {
+			"name": "Zoho/Authorization"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_rest_api",
+						"type": "DatasetReference"
+					},
+					"name": "SourceRest"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_adls_gen2_delimited",
+						"type": "DatasetReference"
+					},
+					"name": "SinkDelimited"
+				}
+			],
+			"transformations": [
+				{
+					"name": "SelectTransformation"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     ClientId as string,",
+				"     ClientSecret as string,",
+				"     RefreshToken as string,",
+				"     SinkFileName as string",
+				"}",
+				"source(output(",
+				"          body as (access_token as string, api_domain as string, expires_in as short, token_type as string),",
+				"          headers as [string,string]",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     httpMethod: 'POST',",
+				"     timeout: 30,",
+				"     requestInterval: 0,",
+				"     queryParameters: ['client_id' -> ($ClientId), 'client_secret' -> ($ClientSecret), 'refresh_token' -> ($RefreshToken), 'grant_type' -> 'refresh_token'],",
+				"     paginationRules: ['supportRFC5988' -> 'true'],",
+				"     responseFormat: ['type' -> 'json', 'documentForm' -> 'documentPerLine']) ~> SourceRest",
+				"SourceRest select(mapColumn(",
+				"          access_token = body.access_token",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectTransformation",
+				"SelectTransformation sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:[($SinkFileName)],",
+				"     truncate: true,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> SinkDelimited"
+			]
+		}
+	}
+}

@@ -1,0 +1,28 @@
+{
+	"name": "trigger_load_punch_data",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "pl_punch_data_load",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceFileName": "@triggerBody().fileName"
+				}
+			}
+		],
+		"type": "BlobEventsTrigger",
+		"typeProperties": {
+			"blobPathBeginsWith": "/bronze/blobs/audax/punch_records/",
+			"blobPathEndsWith": ".csv",
+			"ignoreEmptyBlobs": true,
+			"scope": "/subscriptions/69a89c4c-53f5-464f-b379-e208fddb5117/resourceGroups/Attendance_Management_System/providers/Microsoft.Storage/storageAccounts/complianceanalyticssa",
+			"events": [
+				"Microsoft.Storage.BlobCreated"
+			]
+		}
+	}
+}

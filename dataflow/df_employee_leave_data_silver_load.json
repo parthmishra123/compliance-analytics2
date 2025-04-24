@@ -1,0 +1,107 @@
+{
+	"name": "df_employee_leave_data_silver_load",
+	"properties": {
+		"folder": {
+			"name": "Zoho/Leaves"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_adls_gen2_json",
+						"type": "DatasetReference"
+					},
+					"name": "SourceJson"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "SinkDelta"
+				}
+			],
+			"transformations": [
+				{
+					"name": "SelectColumns"
+				},
+				{
+					"name": "CastDates"
+				},
+				{
+					"name": "DerivedColumnBatchId"
+				},
+				{
+					"name": "AlterRowTransformation"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     FileName as string,",
+				"     BatchId as string,",
+				"     SinkFileSystem as string,",
+				"     SinkFolderPath as string,",
+				"     KeyColumns as string[] ([\"employee_id\", \"from\", \"to\"])",
+				"}",
+				"source(output(",
+				"          body as ({Added By} as string, {Added time} as string, ApprovalStatus as string, ApprovalTime as string, {Days/Hours Taken} as double, {Employee ID} as string, From as string, {Leave type} as string, {Medical certificate} as string, {Medical certificate_downloadUrl} as string, {Modified By} as string, {Modified time} as string, {Reason for leave} as string, To as string, Unit as string, approvalDetails as (approvalCompletionTime as string, approvalStartTime as string, approvers as (comment as string, displayName as string, id as long, status as string, time as string, type as string)[], isAutoApproved as boolean), createdTime as long, modifiedTime as long, ownerID as long, ownerName as string, recordId as long),",
+				"          headers as ({API-Count-Left-Today} as short, {Cache-Control} as string, Connection as string, {Content-Disposition} as string, {Content-Type} as string, Date as string, Expires as string, ExternalApiCall as string, Pragma as string, Server as string, {Set-Cookie} as string, {Strict-Transport-Security} as string, {Transfer-Encoding} as string, {X-Content-Type-Options} as string, {X-Frame-Options} as string, {X-XSS-Protection} as boolean, vary as string)",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     documentForm: 'documentPerLine') ~> SourceJson",
+				"SourceJson select(mapColumn(",
+				"          employee_id = body.{Added By},",
+				"          employee_name = body.ownerName,",
+				"          days_hours_taken = body.{Days/Hours Taken},",
+				"          unit = body.Unit,",
+				"          from = body.From,",
+				"          to = body.To,",
+				"          approval_status = body.ApprovalStatus,",
+				"          leave_type = body.{Leave type},",
+				"          reason_for_leave = body.{Reason for leave},",
+				"          modified_time = body.{Modified time},",
+				"          modified_time_epoch = body.modifiedTime,",
+				"          created_time = body.createdTime,",
+				"          zoho_id = body.ownerID,",
+				"          record_id = body.recordId",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectColumns",
+				"SelectColumns cast(output(",
+				"          from as date 'dd-MMM-yyyy',",
+				"          to as date 'dd-MMM-yyyy'",
+				"     ),",
+				"     errors: true) ~> CastDates",
+				"CastDates derive(employee_id = split(employee_id,' ')[1],",
+				"          week_of_year = weekOfYear(from),",
+				"          file_name = $FileName,",
+				"          batch_id = $BatchId) ~> DerivedColumnBatchId",
+				"DerivedColumnBatchId alterRow(upsertIf(true())) ~> AlterRowTransformation",
+				"AlterRowTransformation sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: ($SinkFileSystem),",
+				"     folderPath: ($SinkFolderPath),",
+				"     mergeSchema: true,",
+				"     autoCompact: true,",
+				"     optimizedWrite: true,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:($KeyColumns),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SinkDelta"
+			]
+		}
+	}
+}

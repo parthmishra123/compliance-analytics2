@@ -1,0 +1,276 @@
+{
+	"name": "pl_report_attendace_short_email_to_manager",
+	"properties": {
+		"activities": [
+			{
+				"name": "lkp_distinct_managers",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": {
+							"value": "@CONCAT('SELECT concat(e.first_name, '' '', e.last_name) as [name], tbl.reporting_to_email_id FROM employee e inner join (SELECT DISTINCT reporting_to_email_id FROM attendance_snapshot WHERE (is_days_short = 1 OR is_hours_short = 1) AND [from] = ''', pipeline().parameters.from, ''' and [to] = ''', pipeline().parameters.to, ''') tbl on tbl.reporting_to_email_id = e.email_id ORDER BY e.employee_id')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_synapse_serverless_sql",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "foreach_iterate_managers",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lkp_distinct_managers",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "web_invoke_email_service_conn_string",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lkp_distinct_managers').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "lkp_email_content",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "@CONCAT('DECLARE @email_content varchar(max); SELECT @email_content = STRING_AGG(CAST(\n''<tr>''+\n''<td>''+employee_id+''</td>''+\n''<td >''+concat(first_name, '' '', last_name)+''</td>''+\n''<td >''+email_id+''</td>''+\n''<td >''+ CAST(expected_days as varchar) +''</td>''+\n''<td >''+ CAST(actual_days as varchar) +''</td>''+\n''<td >''+ CAST(expected_hours as varchar) +''</td>''+\n''<td >''+ CAST(actual_hours as varchar) +''</td>''+\n''</tr>'' AS nvarchar(max)), '''') WITHIN GROUP (ORDER BY employee_id) from [dbo].[attendance_snapshot] where (is_days_short = 1 OR is_hours_short = 1) AND email_id NOT IN (''deepakm@audaxlabs.com'', ''harpreets@audaxlabs.com'', ''hemantv@audaxlabs.com'', ''manishw@audaxlabs.com'', ''nirakarh@audaxlabs.com'', ''rajeshk@audaxlabs.com'', ''rakeshs@audaxlabs.com'', ''shamshers@audaxlabs.com'', ''swarupkumarh@audaxlabs.com'') and reporting_to_email_id = ''', item().reporting_to_email_id, ''' and [from] = ''', pipeline().parameters.from,''' and [to] = ''', pipeline().parameters.to, '''; select ''<table><tr><th>Employee Id</th><th>Name</th><th>Email Id</th><th>Expected Days</th><th>Actual Days</th><th>Expected Hours</th><th>Actual Hours</th></tr>''+@email_content + ''</table>''  as [message];')",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_synapse_serverless_sql",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "if_evaluate_email_content_exists",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "lkp_check_email_content_exists",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "lkp_email_content",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@greater(activity('lkp_check_email_content_exists').output.count, 0)",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "nb_execute_nb_report_attendance_email_alert_to_manager",
+										"type": "SynapseNotebook",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"notebook": {
+												"referenceName": "nb_report_attendance_email_alert_to_manager",
+												"type": "NotebookReference"
+											},
+											"parameters": {
+												"email_conn_string": {
+													"value": {
+														"value": "@activity('web_invoke_email_service_conn_string').output.value",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"email_content": {
+													"value": {
+														"value": "@activity('lkp_email_content').output.firstRow.message",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"to_address": {
+													"value": {
+														"value": "@item().reporting_to_email_id",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"sender_address": {
+													"value": "DoNotReply@608259ab-4246-4d97-838c-89523d027f8b.azurecomm.net",
+													"type": "string"
+												},
+												"subject": {
+													"value": "Non-Compliance with the Roaster Policy",
+													"type": "string"
+												},
+												"template_path": {
+													"value": "abfss://complianceanalyticsfs@complianceanalyticssa.dfs.core.windows.net/synapse/workspaces/email_templates/attendace_short_email_to_manager_alert.txt",
+													"type": "string"
+												},
+												"is_high_importance": {
+													"value": true,
+													"type": "bool"
+												},
+												"manager_name": {
+													"value": {
+														"value": "@item().name",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"start_date": {
+													"value": {
+														"value": "@pipeline().parameters.from",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"end_date": {
+													"value": {
+														"value": "@pipeline().parameters.to",
+														"type": "Expression"
+													},
+													"type": "string"
+												}
+											},
+											"snapshot": true,
+											"sparkPool": {
+												"referenceName": "audaxsparkpool",
+												"type": "BigDataPoolReference"
+											},
+											"conf": {
+												"spark.dynamicAllocation.enabled": null,
+												"spark.dynamicAllocation.minExecutors": null,
+												"spark.dynamicAllocation.maxExecutors": null
+											},
+											"numExecutors": null
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "lkp_check_email_content_exists",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "@concat('SELECT * FROM [dbo].[attendance_snapshot] where (is_days_short = 1 OR is_hours_short = 1) AND email_id NOT IN (''deepakm@audaxlabs.com'', ''harpreets@audaxlabs.com'', ''hemantv@audaxlabs.com'', ''manishw@audaxlabs.com'', ''nirakarh@audaxlabs.com'', ''rajeshk@audaxlabs.com'', ''rakeshs@audaxlabs.com'', ''shamshers@audaxlabs.com'', ''swarupkumarh@audaxlabs.com'') and reporting_to_email_id = ''', item().reporting_to_email_id, ''' and [from] = ''', pipeline().parameters.from,''' and [to] = ''', pipeline().parameters.to, '''')",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_synapse_serverless_sql",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": false
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "web_invoke_email_service_conn_string",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": "https://compliance-analytics.vault.azure.net/secrets/email-service-conn-string/e15b92af79324fe2b6e58d4b0870f087?api-version=7.4",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"from": {
+				"type": "string",
+				"defaultValue": "2024-06-09"
+			},
+			"to": {
+				"type": "string",
+				"defaultValue": "2024-06-15"
+			}
+		},
+		"folder": {
+			"name": "ResourceManagement/Report/Attendance"
+		},
+		"annotations": []
+	}
+}

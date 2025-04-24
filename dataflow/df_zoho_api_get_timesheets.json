@@ -1,0 +1,111 @@
+{
+	"name": "df_zoho_api_get_timesheets",
+	"properties": {
+		"folder": {
+			"name": "Zoho/Timesheet"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_rest_api",
+						"type": "DatasetReference"
+					},
+					"name": "SourceZohoApi",
+					"description": "Import data from ds_rest_api"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "compliance-analytics-synapse-ws-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "SinkDelta"
+				}
+			],
+			"transformations": [
+				{
+					"name": "FlattenArrayResults"
+				},
+				{
+					"name": "CastDates"
+				},
+				{
+					"name": "DerivedColumnBatchId"
+				},
+				{
+					"name": "AlterRowTransformation"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     ZohoAccessToken as string,",
+				"     FromDate as string,",
+				"     ToDate as string,",
+				"     SinkFolderPath as string,",
+				"     SinkFileSystem as string,",
+				"     BatchId as string,",
+				"     KeyColumns as string[]",
+				"}",
+				"source(output(",
+				"          body as (response as (isNextAvailable as boolean, message as string, result as (approvedBillableHours as string, approvedNonBillableHours as string, approvedTotalHours as string, billableHours as string, currency as string, description as string, employeeEmail as string, employeeId as string, employeeName as string, erecno as long, formId as long, fromDate as string, isDeleteAllowed as boolean, listId as long, nonbillableHours as string, owner as long, recordId as long, status as string, timesheetName as string, toDate as string, totalHours as string)[], status as boolean, uri as string)),",
+				"          headers as [string,string]",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     httpMethod: 'GET',",
+				"     timeout: 30,",
+				"     requestInterval: 0,",
+				"     headers: ['Authorization' -> (concat('Zoho-oauthtoken ',$ZohoAccessToken))],",
+				"     queryParameters: ['user' -> 'all', 'dateFormat' -> 'dd-MMM-yyyy', 'fromDate' -> ($FromDate), 'toDate' -> ($ToDate)],",
+				"     paginationRules: ['supportRFC5988' -> 'true'],",
+				"     responseFormat: ['type' -> 'json', 'documentForm' -> 'documentPerLine']) ~> SourceZohoApi",
+				"SourceZohoApi foldDown(unroll(body.response.result),",
+				"     mapColumn(",
+				"          employee_name = body.response.result.employeeName,",
+				"          employee_id = body.response.result.employeeId,",
+				"          employee_email = body.response.result.employeeEmail,",
+				"          erec_no = body.response.result.erecno,",
+				"          from_date = body.response.result.fromDate,",
+				"          to_date = body.response.result.toDate,",
+				"          total_hours = body.response.result.totalHours,",
+				"          billable_hours = body.response.result.billableHours,",
+				"          record_id = body.response.result.recordId,",
+				"          timesheet_name = body.response.result.timesheetName,",
+				"          status = body.response.status",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> FlattenArrayResults",
+				"FlattenArrayResults cast(output(",
+				"          from_date as date 'dd-MMM-yyyy',",
+				"          to_date as date 'dd-MMM-yyyy'",
+				"     ),",
+				"     errors: true) ~> CastDates",
+				"CastDates derive(total_minutes = (toInteger(split(total_hours,':')[1])*60)+(toInteger(split(total_hours,':')[2])),",
+				"          batch_id = $BatchId) ~> DerivedColumnBatchId",
+				"DerivedColumnBatchId alterRow(upsertIf(true())) ~> AlterRowTransformation",
+				"AlterRowTransformation sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: ($SinkFileSystem),",
+				"     folderPath: ($SinkFolderPath),",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:($KeyColumns),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SinkDelta"
+			]
+		}
+	}
+}

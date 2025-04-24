@@ -1,0 +1,143 @@
+{
+	"name": "pl_zoho_missing_timesheet_gold_data_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "set_var_from",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "from",
+					"value": {
+						"value": "@formatDateTime(\r\n    subtractFromTime(\r\n        utcNow(),\r\n        add(dayOfWeek(utcNow()),7),\r\n        'Day'\r\n    ),\r\n    'yyyy-MM-dd'\r\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "set_var_to",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "set_var_from",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "to",
+					"value": {
+						"value": "@formatDateTime(\r\n    addDays(\r\n        subtractFromTime(\r\n            utcNow(),\r\n            dayOfWeek(utcNow()),\r\n            'Day'\r\n        ),\r\n    -1),\r\n    'yyyy-MM-dd'\r\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "execute_df_usp_missing_timesheet_to_delta_table",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "set_var_to",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_usp_missing_timesheet_to_delta_table",
+						"type": "DataFlowReference",
+						"parameters": {
+							"SinkFileSystem": {
+								"value": "'@{pipeline().parameters.SinkFileSystem}'",
+								"type": "Expression"
+							},
+							"SinkDirectory": {
+								"value": "'@{pipeline().parameters.SinkDirectory}'",
+								"type": "Expression"
+							},
+							"KeyColumns": {
+								"value": "@pipeline().parameters.KeyColumns",
+								"type": "Expression"
+							},
+							"From": {
+								"value": "'@{variables('from')}'",
+								"type": "Expression"
+							},
+							"To": {
+								"value": "'@{variables('to')}'",
+								"type": "Expression"
+							},
+							"BatchId": {
+								"value": "'@{formatDateTime(pipeline().TriggerTime, 'yyyMMdd_HHmmss')}'",
+								"type": "Expression"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 16,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"parameters": {
+			"SinkFileSystem": {
+				"type": "string",
+				"defaultValue": "gold"
+			},
+			"SinkDirectory": {
+				"type": "string",
+				"defaultValue": "audax/zoho/missing_timesheets"
+			},
+			"KeyColumns": {
+				"type": "array",
+				"defaultValue": [
+					"employee_id",
+					"email_id",
+					"from",
+					"to",
+					"week_no"
+				]
+			}
+		},
+		"variables": {
+			"from": {
+				"type": "String"
+			},
+			"to": {
+				"type": "String"
+			},
+			"a": {
+				"type": "String"
+			},
+			"b": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "ResourceManagement/Zoho/Timesheet"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,56 @@
+{
+	"name": "df_zoho_leaves_api_data_bronze_load",
+	"properties": {
+		"folder": {
+			"name": "Zoho/Leaves"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_rest_api",
+						"type": "DatasetReference"
+					},
+					"name": "SourceZohoApi"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_adls_gen2_json",
+						"type": "DatasetReference"
+					},
+					"name": "SInkJson"
+				}
+			],
+			"transformations": [],
+			"scriptLines": [
+				"parameters{",
+				"     ZohoAccessToken as string,",
+				"     FromDate as string,",
+				"     ToDate as string,",
+				"     SinkFileName as string",
+				"}",
+				"source(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     httpMethod: 'GET',",
+				"     timeout: 120,",
+				"     requestInterval: 0,",
+				"     headers: ['Authorization' -> (concat('Zoho-oauthtoken ',$ZohoAccessToken))],",
+				"     queryParameters: ['from' -> ($FromDate), 'to' -> ($ToDate)],",
+				"     paginationRules: ['supportRFC5988' -> 'true'],",
+				"     responseFormat: ['type' -> 'json', 'documentForm' -> 'documentPerLine']) ~> SourceZohoApi",
+				"SourceZohoApi sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:[($SinkFileName)],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> SInkJson"
+			]
+		}
+	}
+}

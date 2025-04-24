@@ -1,0 +1,232 @@
+{
+	"name": "pl_report_zoho_timesheet_email_alert",
+	"properties": {
+		"activities": [
+			{
+				"name": "lkp_execute_usp_weekly_missing_timesheet_snapshot",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": {
+							"value": "@concat('select * from missing_timesheets where email_id not in (''deepakn@audaxlabs.com'', ''hr@audaxlabs.com'', ''avinesha@audaxlabs.com'', ''annant.dhawan@audaxlabs.com'') and [from] = ''', pipeline().parameters.StartDate, ''' and [to] = ''', pipeline().parameters.EndDate, '''')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_synapse_serverless_sql",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "for_each_iterate_missing_timesheet_records",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lkp_execute_usp_weekly_missing_timesheet_snapshot",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "web_invoke_email_service_conn_string",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lkp_execute_usp_weekly_missing_timesheet_snapshot').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "nb_execute_nb_report_attendance_email_alert",
+							"type": "SynapseNotebook",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebook": {
+									"referenceName": "nb_report_zoho_timesheet_email_alert",
+									"type": "NotebookReference"
+								},
+								"parameters": {
+									"email_conn_string": {
+										"value": {
+											"value": "@activity('web_invoke_email_service_conn_string').output.value",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"to_address": {
+										"value": {
+											"value": "@item().email_id",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"sender_address": {
+										"value": "DoNotReply@608259ab-4246-4d97-838c-89523d027f8b.azurecomm.net",
+										"type": "string"
+									},
+									"subject": {
+										"value": {
+											"value": "@CONCAT('Submit Your Timesheet for Week ', pipeline().parameters.StartDate, ' - ', pipeline().parameters.EndDate)",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"template_path": {
+										"value": "abfss://complianceanalyticsfs@complianceanalyticssa.dfs.core.windows.net/synapse/workspaces/email_templates/missing_timesheet_email_alert.txt",
+										"type": "string"
+									},
+									"is_high_importance": {
+										"value": true,
+										"type": "bool"
+									},
+									"employee_name": {
+										"value": {
+											"value": "@concat(item().first_name, ' ', item().last_name)",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"employee_id": {
+										"value": {
+											"value": "@item().employee_id",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"start_date": {
+										"value": {
+											"value": "@pipeline().parameters.StartDate",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"end_date": {
+										"value": {
+											"value": "@pipeline().parameters.EndDate",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"leaves_hours": {
+										"value": {
+											"value": "@item().leaves_hours",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"holidays_hours": {
+										"value": {
+											"value": "@item().holidays_hours",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"total_hours": {
+										"value": {
+											"value": "@item().total_hours",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"submitted_hours": {
+										"value": {
+											"value": "@item().submitted_hours",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"expected_hours": {
+										"value": {
+											"value": "@item().expected_hours",
+											"type": "Expression"
+										},
+										"type": "string"
+									}
+								},
+								"snapshot": true,
+								"sparkPool": {
+									"referenceName": "audaxsparkpool",
+									"type": "BigDataPoolReference"
+								},
+								"executorSize": "Medium",
+								"conf": {
+									"spark.dynamicAllocation.enabled": null,
+									"spark.dynamicAllocation.minExecutors": null,
+									"spark.dynamicAllocation.maxExecutors": null
+								},
+								"driverSize": "Medium",
+								"numExecutors": null
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "web_invoke_email_service_conn_string",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": "https://compliance-analytics.vault.azure.net/secrets/email-service-conn-string/e15b92af79324fe2b6e58d4b0870f087?api-version=7.4",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"StartDate": {
+				"type": "string",
+				"defaultValue": "2024-03-24"
+			},
+			"EndDate": {
+				"type": "string",
+				"defaultValue": "2024-03-30"
+			}
+		},
+		"folder": {
+			"name": "ResourceManagement/Report/Zoho/Timesheet"
+		},
+		"annotations": []
+	}
+}
